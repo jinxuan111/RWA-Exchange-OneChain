@@ -405,7 +405,7 @@ export default function Dashboard() {
         <MotionBox
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
+          transition={{ duration: 0.6 } as any}
         >
           <Box
             mb={8}
@@ -515,7 +515,7 @@ export default function Dashboard() {
           <MotionCard
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.4, duration: 0.5 }}
+            transition={{ delay: 0.4, duration: 0.5 } as any}
             bg={glassBg}
             backdropFilter="blur(20px)"
             rounded="2xl"
@@ -539,7 +539,7 @@ export default function Dashboard() {
           <MotionCard
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.5, duration: 0.5 }}
+            transition={{ delay: 0.5, duration: 0.5 } as any}
             bg={glassBg}
             backdropFilter="blur(20px)"
             rounded="2xl"
@@ -592,7 +592,7 @@ export default function Dashboard() {
         <MotionBox
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.6, duration: 0.5 }}
+          transition={{ delay: 0.6, duration: 0.5 } as any}
         >
           <Box
             p={6}
@@ -683,7 +683,7 @@ function PremiumStatCard({
     <MotionCard
       initial={{ opacity: 0, y: 20, scale: 0.95 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
-      transition={{ delay, duration: 0.5 }}
+      transition={{ delay, duration: 0.5 } as any}
       whileHover={{ y: -4, scale: 1.02 }}
       bg={glassBg}
       backdropFilter="blur(20px)"
@@ -693,7 +693,7 @@ function PremiumStatCard({
       borderWidth="1px"
       borderColor="whiteAlpha.300"
       cursor="pointer"
-      transition="all 0.3s"
+      sx={{ transition: "all 0.3s" }}
     >
       <CardBody p={5}>
         <Flex align="center" justify="space-between">
@@ -737,7 +737,7 @@ function InvestmentCard({ investment, index }: { investment: any; index: number 
     <MotionBox
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: index * 0.1 + 0.7, duration: 0.4 }}
+      transition={{ delay: index * 0.1 + 0.7, duration: 0.4 } as any}
       whileHover={{ y: -4, scale: 1.02 }}
     >
       <Box
@@ -746,7 +746,7 @@ function InvestmentCard({ investment, index }: { investment: any; index: number 
         overflow="hidden"
         boxShadow="0 4px 12px rgba(0,0,0,0.1)"
         _hover={{ boxShadow: "0 8px 20px rgba(102, 126, 234, 0.2)" }}
-        transition="all 0.3s"
+        sx={{ transition: "all 0.3s" }}
       >
         <Image
           src={investment.imageUrl}

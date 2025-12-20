@@ -25,6 +25,7 @@ export interface UseOneChainWalletReturn {
 export const useOneChainWallet = (): UseOneChainWalletReturn => {
   const [account, setAccount] = useState<WalletAccountWithBalance | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [isConnecting, setIsConnecting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const isConnected = !!account;
