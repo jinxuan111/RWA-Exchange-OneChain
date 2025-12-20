@@ -38,13 +38,17 @@ export const useOneChainWallet = (): UseOneChainWalletReturn => {
         setAccount(walletData);
         
         // IMPORTANT: Reconnect the wallet service to maintain connection state
-        console.log('useOneChainWallet: Found saved wallet, reconnecting...');
-        oneChainService.connectWalletExtension().then(() => {
-          console.log('useOneChainWallet: Wallet service reconnected');
-        }).catch((err) => {
-          console.warn('useOneChainWallet: Failed to reconnect wallet service:', err);
-          // Don't clear the account - UI can still show it
-        });
+        // Add debounce to prevent multiple reconnections
+        if (!isConnecting) {
+          setIsConnecting(true);
+          oneChainService.connectWalletExtension().then(() => {
+            // Wallet service reconnected successfully
+          }).catch((err) => {
+            // Don't clear the account - UI can still show it
+          }).finally(() => {
+            setIsConnecting(false);
+          });
+        }
       } catch (err) {
         console.error('Error loading saved wallet:', err);
         localStorage.removeItem('onechain_wallet');

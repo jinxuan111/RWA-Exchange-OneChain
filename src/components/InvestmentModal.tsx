@@ -22,6 +22,7 @@ import {
   useToast,
   Divider,
   Box,
+  Badge,
 } from "@chakra-ui/react";
 import { useState } from "react";
 import { useDappKit } from "@/hooks/useDappKit";
@@ -35,7 +36,7 @@ interface InvestmentModalProps {
   pricePerShare: number;
   availableShares: number;
   totalShares: number;
-  onSuccess?: () => void; // Callback to refresh data after successful investment
+  onSuccess?: () => void;
 }
 
 export function InvestmentModal({
@@ -53,16 +54,18 @@ export function InvestmentModal({
   const [sharesToBuy, setSharesToBuy] = useState(1);
   const [isInvesting, setIsInvesting] = useState(false);
   const [progress, setProgress] = useState(0);
+  const [statusMessage, setStatusMessage] = useState<string>("");
 
   const totalCost = sharesToBuy * pricePerShare;
 
   const handleInvest = async () => {
+    // Validation checks
     if (!isConnected || !account) {
       toast({
         title: "Wallet Not Connected",
-        description: "Please connect your wallet first",
+        description: "Please connect your wallet first to continue with the investment.",
         status: "error",
-        duration: 3000,
+        duration: 4000,
       });
       return;
     }
@@ -70,27 +73,31 @@ export function InvestmentModal({
     if (sharesToBuy <= 0 || sharesToBuy > availableShares) {
       toast({
         title: "Invalid Amount",
-        description: `Please enter between 1 and ${availableShares} shares`,
+        description: `Please enter between 1 and ${availableShares} shares.`,
         status: "error",
-        duration: 3000,
+        duration: 4000,
       });
       return;
     }
 
     setIsInvesting(true);
     setProgress(10);
+    setStatusMessage("Preparing investment...");
 
     try {
-      setProgress(30);
+      // Step 1: Preparing transaction
+      setProgress(20);
+      setStatusMessage("Please approve the transaction in your wallet...");
 
+      // Step 2: Waiting for user to sign
       toast({
-        title: "Processing Investment",
-        description: "Submitting transaction to blockchain...",
+        title: "Sign Transaction",
+        description: "Please approve the investment in your wallet",
         status: "info",
-        duration: 2000,
+        duration: 3000,
       });
 
-      setProgress(50);
+      setProgress(40);
 
       // Call smart contract using dapp-kit - REAL BLOCKCHAIN TRANSACTION
       const result = await propertyContractService.investInProperty(
@@ -100,17 +107,24 @@ export function InvestmentModal({
         signAndExecuteTransaction
       );
 
-      setProgress(90);
+      // Step 3: Processing on blockchain
+      setProgress(70);
+      setStatusMessage("Processing on blockchain...");
 
       if (result.success) {
+        // Step 4: Success!
+        setProgress(100);
+        setStatusMessage("Investment successful!");
+
         const txHash = result.transactionDigest;
-        const explorerUrl = `https://onescan.cc/testnet/home#/transaction/${txHash}`;
+        const explorerUrl = `https://onescan.cc/testnet/transactionBlocksDetail?digest=${txHash}`;
         
+        // Show detailed success toast with transaction info
         toast({
           title: "Investment Successful! 🎉",
           description: (
             <VStack align="start" spacing={2} w="full">
-              <Text>You purchased {sharesToBuy} shares!</Text>
+              <Text>You purchased {sharesToBuy} shares for {totalCost} OCT!</Text>
               <Box 
                 p={2} 
                 bg="gray.100" 
@@ -125,7 +139,7 @@ export function InvestmentModal({
               <HStack spacing={2} w="full">
                 <Button
                   size="sm"
-                  colorScheme="purple"
+                  colorScheme="green"
                   variant="outline"
                   flex={1}
                   onClick={() => {
@@ -146,7 +160,7 @@ export function InvestmentModal({
                   target="_blank"
                   rel="noopener noreferrer"
                   size="sm"
-                  colorScheme="purple"
+                  colorScheme="green"
                   flex={1}
                 >
                   🔍 View on OneScan
@@ -158,85 +172,204 @@ export function InvestmentModal({
           duration: 15000,
           isClosable: true,
         });
-
-        setProgress(100);
         
         // Call onSuccess callback to refresh property data
         if (onSuccess) {
-          console.log('🔄 Refreshing property data after successful investment...');
           onSuccess();
         }
         
-        // Reset and close
+        // Reset and close after delay
         setTimeout(() => {
           setSharesToBuy(1);
           setProgress(0);
+          setStatusMessage("");
           onClose();
-        }, 1500);
+        }, 2000);
       } else {
         throw new Error(result.error || "Transaction failed");
       }
-    } catch (error) {
-      console.error("Error investing:", error);
-      toast({
-        title: "Investment Failed",
-        description: error instanceof Error ? error.message : "Unknown error",
-        status: "error",
-        duration: 5000,
-      });
+    } catch (error: any) {
       setProgress(0);
+      setStatusMessage("");
+      
+      // Parse error and show appropriate message
+      const errorMessage = error?.message || error?.toString() || 'Unknown error';
+      
+      // Handle specific error types with user-friendly messages
+      if (errorMessage.includes('User rejected') || 
+          errorMessage.includes('cancelled') ||
+          errorMessage.includes('denied')) {
+        toast({
+          title: "Transaction Cancelled",
+          description: "You cancelled the investment transaction. No funds were transferred.",
+          status: "warning",
+          duration: 5000,
+        });
+      } else if (errorMessage.includes('insufficient') && errorMessage.includes('fund')) {
+        toast({
+          title: "Insufficient Funds",
+          description: `You need ${totalCost} OCT to complete this investment. Please add funds to your wallet.`,
+          status: "error",
+          duration: 5000,
+        });
+      } else if (errorMessage.includes('network') || 
+                 errorMessage.includes('connection') ||
+                 errorMessage.includes('timeout')) {
+        toast({
+          title: "Network Error",
+          description: "Unable to connect to the blockchain. Please check your connection and try again.",
+          status: "error",
+          duration: 5000,
+        });
+      } else {
+        toast({
+          title: "Investment Failed",
+          description: "Transaction failed. Please try again or contact support if the issue persists.",
+          status: "error",
+          duration: 5000,
+        });
+      }
     } finally {
       setIsInvesting(false);
     }
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} size="lg" isCentered>
-      <ModalOverlay bg="blackAlpha.700" backdropFilter="blur(10px)" />
-      <ModalContent bg="white" color="gray.800">
-        <ModalHeader borderBottomWidth="1px" borderColor="gray.200">
-          <VStack align="start" spacing={1}>
-            <Text fontSize="xl" fontWeight="bold" color="gray.800">Invest in Property</Text>
-            <Text fontSize="md" fontWeight="semibold" color="purple.600">
+    <Modal 
+      isOpen={isOpen} 
+      onClose={onClose} 
+      size="lg" 
+      isCentered
+      motionPreset="slideInBottom"
+    >
+      <ModalOverlay 
+        bg="blackAlpha.800" 
+        backdropFilter="blur(12px)"
+      />
+      <ModalContent 
+        bg="white" 
+        color="gray.800"
+        borderRadius="2xl"
+        overflow="hidden"
+        boxShadow="0 25px 50px -12px rgba(0, 0, 0, 0.25)"
+      >
+        <ModalHeader 
+          borderBottomWidth="1px" 
+          borderColor="gray.100"
+          bg="linear-gradient(135deg, rgba(139, 92, 246, 0.05) 0%, rgba(59, 130, 246, 0.05) 100%)"
+          py={6}
+        >
+          <VStack align="start" spacing={2}>
+            <Text 
+              fontSize="2xl" 
+              fontWeight="800" 
+              color="gray.800"
+              letterSpacing="-0.02em"
+            >
+              Invest in Property
+            </Text>
+            <Text 
+              fontSize="lg" 
+              fontWeight="600" 
+              bgGradient="linear(to-r, purple.600, blue.500)"
+              bgClip="text"
+            >
               {propertyName}
             </Text>
           </VStack>
         </ModalHeader>
-        <ModalCloseButton />
+        <ModalCloseButton 
+          size="lg"
+          _hover={{ 
+            bg: "gray.100", 
+            transform: "rotate(90deg)",
+            transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)"
+          }}
+          transition="all 0.2s"
+        />
         
         <ModalBody>
           <VStack spacing={6} align="stretch">
             {isInvesting && (
-              <Progress value={progress} size="sm" colorScheme="purple" />
+              <Box>
+                <Progress value={progress} size="sm" colorScheme="purple" borderRadius="full" />
+                <Text fontSize="sm" color="gray.600" mt={2} textAlign="center">
+                  {statusMessage}
+                </Text>
+              </Box>
             )}
 
-            <Box p={4} bg="purple.50" borderRadius="md" borderWidth="1px" borderColor="purple.200">
-              <VStack spacing={3} align="stretch">
+            <Box 
+              p={5} 
+              bgGradient="linear(135deg, purple.50 0%, blue.50 100%)"
+              borderRadius="xl" 
+              borderWidth="2px" 
+              borderColor="purple.100"
+            >
+              <VStack spacing={4} align="stretch">
                 <HStack justify="space-between">
-                  <Text fontSize="sm" fontWeight="medium" color="gray.700">Price per Share:</Text>
-                  <Text fontWeight="bold" fontSize="lg" color="gray.900">{pricePerShare.toLocaleString()} OCT</Text>
+                  <Text fontSize="sm" fontWeight="600" color="gray.600" letterSpacing="wide">
+                    PRICE PER SHARE
+                  </Text>
+                  <Text 
+                    fontWeight="800" 
+                    fontSize="2xl" 
+                    bgGradient="linear(to-r, purple.600, blue.500)"
+                    bgClip="text"
+                  >
+                    {pricePerShare.toLocaleString()} OCT
+                  </Text>
                 </HStack>
                 <HStack justify="space-between">
-                  <Text fontSize="sm" fontWeight="medium" color="gray.700">Available Shares:</Text>
-                  <Text fontWeight="bold" fontSize="lg" color="gray.900">{availableShares.toLocaleString()} / {totalShares.toLocaleString()}</Text>
+                  <Text fontSize="sm" fontWeight="600" color="gray.600" letterSpacing="wide">
+                    AVAILABLE SHARES
+                  </Text>
+                  <VStack align="end" spacing={1}>
+                    <Text fontWeight="800" fontSize="2xl" color="green.500">
+                      {availableShares.toLocaleString()} / {totalShares.toLocaleString()}
+                    </Text>
+                  </VStack>
                 </HStack>
               </VStack>
             </Box>
 
             <FormControl isRequired>
-              <FormLabel fontWeight="semibold" color="gray.700">Number of Shares to Buy</FormLabel>
+              <FormLabel 
+                fontWeight="700" 
+                color="gray.800" 
+                fontSize="md"
+                mb={3}
+              >
+                Number of Shares to Buy
+              </FormLabel>
               <NumberInput
-                value={sharesToBuy}
-                onChange={(_, val) => setSharesToBuy(val)}
+                value={isNaN(sharesToBuy) ? 1 : sharesToBuy}
+                onChange={(_, val) => setSharesToBuy(isNaN(val) ? 1 : Math.round(val))}
                 min={1}
                 max={availableShares}
                 size="lg"
+
               >
-                <NumberInputField bg="white" borderColor="gray.300" _hover={{ borderColor: "purple.400" }} _focus={{ borderColor: "purple.500", boxShadow: "0 0 0 1px var(--chakra-colors-purple-500)" }} />
+                <NumberInputField 
+                  bg="white" 
+                  borderWidth="2px"
+                  borderColor="gray.200" 
+                  borderRadius="xl"
+                  fontSize="xl"
+                  fontWeight="600"
+                  _hover={{ borderColor: "purple.400" }} 
+                  _focus={{ borderColor: "purple.500", boxShadow: "0 0 0 4px rgba(139, 92, 246, 0.15)" }}
+                />
               </NumberInput>
-              <Text fontSize="xs" color="gray.600" mt={2} fontWeight="medium">
-                Minimum: 1 share | Maximum: {availableShares.toLocaleString()} shares
-              </Text>
+              <HStack mt={3} spacing={2}>
+                <Text fontSize="xs" color="gray.500" fontWeight="500">
+                  Min: 1
+                </Text>
+                <Text fontSize="xs" color="gray.400">•</Text>
+                <Text fontSize="xs" color="gray.500" fontWeight="500">
+                  Max: {availableShares.toLocaleString()} shares
+                </Text>
+              </HStack>
             </FormControl>
 
             <Divider />

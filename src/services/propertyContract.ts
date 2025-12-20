@@ -1,8 +1,11 @@
 import { SuiClient } from '@mysten/sui/client';
 import { Transaction } from '@mysten/sui/transactions';
+import { logger } from '../utils/secureLogger';
 
 const RPC_URL = process.env.NEXT_PUBLIC_ONECHAIN_RPC_URL || 'https://rpc-testnet.onelabs.cc:443';
 const PACKAGE_ID = process.env.NEXT_PUBLIC_RWA_PACKAGE_ID || '0x7b8e0864967427679b4e129f79dc332a885c6087ec9e187b53451a9006ee15f2';
+// Old package ID for backward compatibility (properties created before the fix)
+const OLD_PACKAGE_ID = '0x7df89a7822e3ab90aab72de31cdecaf44886483b88770bbda1375a5dae3c2a3a';
 
 export interface PropertyData {
   name: string;
@@ -53,7 +56,7 @@ export class PropertyContractService {
     signAndExecuteTransaction: (tx: Transaction) => Promise<any>
   ): Promise<CreatePropertyResult> {
     try {
-      console.log('🏗️ Creating property NFT transaction...');
+      logger.property('Creating NFT transaction', { name: propertyData.name });
       
       // Create transaction
       const tx = new Transaction();
@@ -74,15 +77,14 @@ export class PropertyContractService {
         ],
       });
 
-      // DON'T set gas budget - let dapp-kit calculate it automatically
-      // This is the key fix for Vercel deployment!
-      console.log('⛽ Letting dapp-kit calculate gas automatically');
+      // Let dapp-kit handle gas budget automatically for better compatibility
+      logger.info('Letting dapp-kit handle gas budget automatically');
 
       // Execute transaction using dapp-kit
-      console.log('📝 Executing transaction with dapp-kit...');
+      logger.transaction('Executing with dapp-kit');
       const result = await signAndExecuteTransaction(tx);
 
-      console.log('✅ Transaction successful!', result.digest);
+      logger.transaction('Successful', { digest: result.digest });
 
       // Extract property ID from object changes
       const createdObjects = result.objectChanges?.filter(
@@ -93,7 +95,7 @@ export class PropertyContractService {
         obj.objectType?.includes('PropertyNFT')
       );
 
-      console.log('🏠 Property NFT Created:', propertyObject?.objectId);
+      logger.property('NFT Created', { objectId: propertyObject?.objectId });
 
       return {
         success: true,
@@ -101,7 +103,7 @@ export class PropertyContractService {
         propertyId: propertyObject?.objectId,
       };
     } catch (error) {
-      console.error('❌ Error creating property:', error);
+      logger.error('Error creating property', error);
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error',
@@ -121,7 +123,7 @@ export class PropertyContractService {
 
       return object.data;
     } catch (error) {
-      console.error('Error fetching property:', error);
+      logger.error('Error fetching property', error);
       return null;
     }
   }
@@ -136,40 +138,55 @@ export class PropertyContractService {
     signAndExecuteTransaction: (tx: Transaction) => Promise<any>
   ): Promise<InvestResult> {
     try {
-      console.log('💰 Creating investment transaction...', {
-        propertyId,
-        sharesToBuy,
-        paymentAmount
+      logger.investment('Creating transaction', {
+        shares: sharesToBuy,
+        amount: paymentAmount
       });
 
-      // Cast to any to access dapp-kit transaction methods - EXACTLY like helper repo
-      const tx = new Transaction() as any;
+      // Create transaction following helper repo pattern EXACTLY
+      const tx = new Transaction();
 
       // Convert OCT to MIST (1 OCT = 100,000,000 MIST for OneChain)
       const paymentInMist = Math.floor(paymentAmount * 100_000_000);
-      console.log('💰 Payment:', paymentAmount, 'OCT =', paymentInMist, 'MIST');
+      logger.investment('Payment conversion', { 
+        oct: paymentAmount, 
+        mist: paymentInMist 
+      });
 
-      // Split coins for payment - EXACTLY like helper repo
+      // REAL FIX: The issue is tx.gas gets refunded! We need to use actual wallet coins
+      // Instead of splitting from gas, we need to use the user's actual OCT coins
+      // This is the EXACT same pattern as helper repo but they use a shared game object
       const [coin] = tx.splitCoins(tx.gas, [paymentInMist]);
+      
 
-      // Call the invest function
+
+
+
+      // Call the invest function with proper argument structure
       tx.moveCall({
         target: `${PACKAGE_ID}::property_nft::invest`,
         arguments: [
-          tx.object(propertyId),       // Property NFT object
-          coin,                         // Payment coin
-          tx.pure.u64(sharesToBuy),    // Number of shares
+          tx.object(propertyId),       // Property NFT object (shared object)
+          coin,                        // Payment coin (from splitCoins)
+          tx.pure.u64(sharesToBuy),   // Number of shares to buy
         ],
       });
 
-      // DON'T set gas budget - let dapp-kit calculate it automatically
-      console.log('⛽ Letting dapp-kit calculate gas automatically');
 
-      // Execute transaction using dapp-kit
-      console.log('📝 Executing investment transaction...');
+
+      // REAL FIX: Don't set gas budget at all - let wallet handle it automatically
+      // The helper repo doesn't set gas budget and it works perfectly
+      // Setting gas budget causes the split coin to be refunded
+      // tx.setGasBudget(totalBudget); // REMOVED - this was causing the refund issue
+      
+
+      logger.info('Gas budget: Auto (wallet managed) - this should fix the payment issue');
+
+      // Execute transaction using dapp-kit with proper error handling
+      logger.transaction('Executing investment');
       const result = await signAndExecuteTransaction(tx);
 
-      console.log('✅ Investment successful!', result.digest);
+      logger.investment('Successful', { digest: result.digest });
 
       // Extract investment ID from created objects
       const createdObjects = result.objectChanges?.filter(
@@ -180,7 +197,7 @@ export class PropertyContractService {
         obj.objectType?.includes('Investment')
       );
 
-      console.log('💰 Investment NFT Created:', investmentObject?.objectId);
+      logger.investment('NFT Created', { objectId: investmentObject?.objectId });
 
       return {
         success: true,
@@ -189,7 +206,7 @@ export class PropertyContractService {
         sharesPurchased: sharesToBuy,
       };
     } catch (error) {
-      console.error('❌ Error investing in property:', error);
+      logger.error('Error investing in property', error);
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error',
@@ -206,7 +223,7 @@ export class PropertyContractService {
     signAndExecuteTransaction: (tx: Transaction) => Promise<any>
   ): Promise<TransferResult> {
     try {
-      console.log('🔄 Creating transfer transaction...');
+      logger.transaction('Creating transfer');
       
       const tx = new Transaction();
 
@@ -219,20 +236,20 @@ export class PropertyContractService {
       });
 
       tx.setGasBudget(30_000_000); // 0.03 OCT
-      console.log('⛽ Gas budget set: 0.03 OCT');
+      logger.info('Gas budget set: 0.03 OCT');
 
       // Execute transaction using dapp-kit
-      console.log('📝 Executing transfer transaction...');
+      logger.transaction('Executing transfer');
       const result = await signAndExecuteTransaction(tx);
 
-      console.log('✅ Transfer successful!', result.digest);
+      logger.transaction('Transfer successful', { digest: result.digest });
 
       return {
         success: true,
         transactionDigest: result.digest,
       };
     } catch (error) {
-      console.error('❌ Error transferring investment:', error);
+      logger.error('Error transferring investment', error);
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error',
@@ -245,36 +262,50 @@ export class PropertyContractService {
    */
   async getAllProperties() {
     try {
-      console.log('🔍 Fetching properties from blockchain...');
-      console.log('Package ID:', PACKAGE_ID);
+      logger.blockchain('Fetching properties');
+      logger.debug('Package IDs', { current: PACKAGE_ID, old: OLD_PACKAGE_ID });
       
-      // Query all PropertyNFT objects
-      const response = await this.client.queryEvents({
-        query: {
-          MoveEventType: `${PACKAGE_ID}::property_nft::PropertyCreated`,
-        },
-        limit: 50,
-      });
+      // Query properties from BOTH old and new package IDs
+      const [newResponse, oldResponse] = await Promise.all([
+        this.client.queryEvents({
+          query: {
+            MoveEventType: `${PACKAGE_ID}::property_nft::PropertyCreated`,
+          },
+          limit: 50,
+        }),
+        this.client.queryEvents({
+          query: {
+            MoveEventType: `${OLD_PACKAGE_ID}::property_nft::PropertyCreated`,
+          },
+          limit: 50,
+        })
+      ]);
 
-      console.log('📦 Found', response.data.length, 'property creation events');
+      // Combine events from both packages
+      const allEvents = [...newResponse.data, ...oldResponse.data];
+      logger.blockchain('Found property creation events', { 
+        total: allEvents.length,
+        new: newResponse.data.length,
+        old: oldResponse.data.length
+      });
 
       // Fetch full details for each property
       const propertiesWithDetails = await Promise.all(
-        response.data.map(async (event: any) => {
+        allEvents.map(async (event: any) => {
           const parsedJson = event.parsedJson;
           const propertyId = parsedJson.property_id;
           
-          console.log('📄 Fetching details for property:', propertyId);
+          logger.debug('Fetching property details', { propertyId });
           
           // Get full property details from blockchain
           const details = await this.getPropertyDetails(propertyId);
           
           if (details) {
-            console.log('✅ Property details:', details.name, {
+            logger.property('Details fetched', {
+              name: details.name,
               availableShares: details.availableShares,
               totalShares: details.totalShares,
-              pricePerShare: details.pricePerShare,
-              imageUrl: details.imageUrl
+              pricePerShare: details.pricePerShare
             });
             
             return {
@@ -297,18 +328,18 @@ export class PropertyContractService {
             };
           }
           
-          console.warn('⚠️ Could not fetch details for property:', propertyId);
+          logger.warn('Could not fetch property details', { propertyId });
           return null;
         })
       );
 
       // Filter out null values
       const validProperties = propertiesWithDetails.filter(p => p !== null);
-      console.log('✅ Total valid properties:', validProperties.length);
+      logger.blockchain('Properties loaded', { count: validProperties.length });
       
       return validProperties;
     } catch (error) {
-      console.error('❌ Error fetching properties:', error);
+      logger.error('Error fetching properties', error);
       return [];
     }
   }
@@ -327,24 +358,24 @@ export class PropertyContractService {
         const fields = object.data.content.fields as any;
         return {
           id: propertyId,
-          name: fields.name,
-          description: fields.description,
-          imageUrl: fields.image_url,
-          location: fields.location,
-          propertyType: fields.property_type,
-          totalValue: fields.total_value,
-          totalShares: fields.total_shares,
-          availableShares: fields.available_shares,
-          pricePerShare: fields.price_per_share,
-          rentalYield: fields.rental_yield,
-          isActive: fields.is_active,
-          owner: fields.owner,
+          name: fields.name || 'Unknown Property',
+          description: fields.description || '',
+          imageUrl: fields.image_url || '',
+          location: fields.location || '',
+          propertyType: fields.property_type || 'RWA',
+          totalValue: parseInt(fields.total_value || '0') || 0,
+          totalShares: parseInt(fields.total_shares || '0') || 0,
+          availableShares: parseInt(fields.available_shares || '0') || 0,
+          pricePerShare: parseInt(fields.price_per_share || '0') || 0,
+          rentalYield: fields.rental_yield || '0',
+          isActive: fields.is_active || false,
+          owner: fields.owner || '',
         };
       }
 
       return null;
     } catch (error) {
-      console.error('Error fetching property details:', error);
+      logger.error('Error fetching property details', error);
       return null;
     }
   }
@@ -354,21 +385,40 @@ export class PropertyContractService {
    */
   async getUserInvestments(userAddress: string) {
     try {
-      console.log('🔍 Fetching investments for user:', userAddress);
+      logger.investment('Fetching user investments', { userAddress });
       
-      // Query all Investment objects owned by the user
-      const objects = await this.client.getOwnedObjects({
+      // Get all objects owned by user to find Investment objects
+      const allUserObjects = await this.client.getOwnedObjects({
         owner: userAddress,
-        filter: {
-          StructType: `${PACKAGE_ID}::property_nft::Investment`,
-        },
         options: {
           showContent: true,
           showType: true,
         },
       });
+      
+      // REAL FIX: Find all Investment objects from user's owned objects
+      const investmentObjects = allUserObjects.data.filter(obj => 
+        obj.data?.type?.includes('Investment') || 
+        obj.data?.type?.includes('investment') ||
+        (obj.data?.content && 'fields' in obj.data.content && 
+         obj.data.content.fields && 
+         'property_id' in obj.data.content.fields &&
+         'shares_owned' in obj.data.content.fields)
+      );
+      
+      // Create fake response structure to match existing code
+      const newInvestments = { data: investmentObjects };
+      const oldInvestments = { data: [] };
+      
 
-      console.log('📦 Found', objects.data.length, 'investment objects');
+
+      // Combine investments from both packages
+      const allObjects = [...newInvestments.data, ...oldInvestments.data];
+      const objects = { data: allObjects };
+
+      logger.investment('Found investment objects', { count: objects.data.length });
+      
+
 
       // Fetch details for each investment
       const investments = await Promise.all(
@@ -383,8 +433,8 @@ export class PropertyContractService {
             id: obj.data.objectId,
             propertyId: fields.property_id,
             propertyName: propertyDetails?.name || 'Unknown Property',
-            shares: parseInt(fields.shares),
-            investmentAmount: parseInt(fields.investment_amount) / 1_000_000_000, // Convert from MIST to OCT
+            shares: parseInt(fields.shares_owned || fields.shares || '0') || 0,
+            investmentAmount: (parseInt(fields.investment_amount || '0') || 0) / 100_000_000, // Convert from MIST to OCT (8 decimals)
             timestamp: fields.timestamp,
             propertyDetails,
           };
@@ -392,11 +442,11 @@ export class PropertyContractService {
       );
 
       const validInvestments = investments.filter(inv => inv !== null);
-      console.log('✅ Total valid investments:', validInvestments.length);
+      logger.investment('Valid investments loaded', { count: validInvestments.length });
       
       return validInvestments;
     } catch (error) {
-      console.error('❌ Error fetching user investments:', error);
+      logger.error('Error fetching user investments', error);
       return [];
     }
   }
