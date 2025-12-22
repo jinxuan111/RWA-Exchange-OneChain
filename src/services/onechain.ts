@@ -26,17 +26,6 @@ export interface OneChainConfig {
   network: 'testnet' | 'mainnet';
 }
 
-// Helper function to get the correct RPC URL based on environment
-function getRpcUrl(): string {
-  // In production (deployed), use proxy to avoid CORS issues
-  if (typeof window !== 'undefined' && window.location.hostname !== 'localhost') {
-    return '/api/onechain-proxy';
-  }
-  
-  // In development, use direct RPC
-  return process.env.NEXT_PUBLIC_ONECHAIN_RPC_URL || 'https://rpc-testnet.onelabs.cc';
-}
-
 class OneChainService {
   private suiClient: SuiClient;
   private config: OneChainConfig;
@@ -44,7 +33,7 @@ class OneChainService {
 
   constructor(config?: OneChainConfig) {
     this.config = config || {
-      rpcUrl: getRpcUrl(),
+      rpcUrl: process.env.NEXT_PUBLIC_ONECHAIN_RPC_URL || '/api/onechain-proxy',
       faucetUrl: process.env.NEXT_PUBLIC_ONECHAIN_FAUCET_URL || 'https://faucet-testnet.onelabs.cc',
       network: (process.env.NEXT_PUBLIC_ONECHAIN_NETWORK as 'testnet' | 'mainnet') || 'testnet'
     };
