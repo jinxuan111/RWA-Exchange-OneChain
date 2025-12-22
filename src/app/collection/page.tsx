@@ -29,6 +29,7 @@ import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { WalletGuard } from "@/components/WalletGuard";
 import { InvestmentModal } from "@/components/InvestmentModal";
+import { PropertyDetailsModal } from "@/components/PropertyDetailsModal";
 import { useDisclosure } from "@chakra-ui/react";
 import { propertyContractService } from "@/services/propertyContract";
 
@@ -46,6 +47,7 @@ export default function CollectionPage() {
   
   // Chakra UI hooks - FIXED ORDER
   const { isOpen, onOpen, onClose } = useDisclosure();
+  const { isOpen: isDetailsOpen, onOpen: onDetailsOpen, onClose: onDetailsClose } = useDisclosure();
   const gradient = useColorModeValue(
     "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
     "linear-gradient(135deg, #1a0b2e 0%, #080420 100%)"
@@ -76,6 +78,11 @@ export default function CollectionPage() {
   const handleInvestClick = (item: any) => {
     setSelectedProperty(item);
     onOpen();
+  };
+
+  const handleDetailsClick = (item: any) => {
+    setSelectedProperty(item);
+    onDetailsOpen();
   };
 
   const dataSource = blockchainProperties;
@@ -425,7 +432,7 @@ export default function CollectionPage() {
                     ) : (
                       <HStack spacing={2} w="full" pt={1}>
                         <Button
-                          onClick={() => handleInvestClick(item)}
+                          onClick={() => handleDetailsClick(item)}
                           size="sm"
                           variant="outline"
                           colorScheme="purple"
@@ -538,6 +545,19 @@ export default function CollectionPage() {
               availableShares={selectedProperty.availableShares || 0}
               totalShares={selectedProperty.totalShares || 0}
               onSuccess={fetchProperties}
+            />
+          )}
+
+          {/* Property Details Modal */}
+          {selectedProperty && (
+            <PropertyDetailsModal
+              isOpen={isDetailsOpen}
+              onClose={onDetailsClose}
+              property={selectedProperty}
+              onInvestClick={() => {
+                onDetailsClose();
+                onOpen();
+              }}
             />
           )}
         </Container>
