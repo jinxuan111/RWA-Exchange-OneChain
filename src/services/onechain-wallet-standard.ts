@@ -54,7 +54,18 @@ class OneChainWalletStandardService {
   private connectedAccount: WalletStandardAccount | null = null;
 
   constructor() {
-    const rpcUrl = process.env.NEXT_PUBLIC_ONECHAIN_RPC_URL || 'https://rpc-testnet.onelabs.cc:443';
+    // Helper function to get the correct RPC URL based on environment
+    const getRpcUrl = (): string => {
+      // In production (deployed), use proxy to avoid CORS issues
+      if (typeof window !== 'undefined' && window.location.hostname !== 'localhost') {
+        return '/api/onechain-proxy';
+      }
+      
+      // In development, use direct RPC
+      return process.env.NEXT_PUBLIC_ONECHAIN_RPC_URL || 'https://rpc-testnet.onelabs.cc';
+    };
+
+    const rpcUrl = getRpcUrl();
     this.oneChainClient = new SuiClient({ url: rpcUrl });
   }
 

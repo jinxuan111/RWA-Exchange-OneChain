@@ -2,7 +2,18 @@ import { SuiClient } from '@mysten/sui/client';
 import { Transaction } from '@mysten/sui/transactions';
 import { logger } from '../utils/secureLogger';
 
-const RPC_URL = process.env.NEXT_PUBLIC_ONECHAIN_RPC_URL || 'https://rpc-testnet.onelabs.cc:443';
+// Helper function to get the correct RPC URL based on environment
+function getRpcUrl(): string {
+  // In production (deployed), use proxy to avoid CORS issues
+  if (typeof window !== 'undefined' && window.location.hostname !== 'localhost') {
+    return '/api/onechain-proxy';
+  }
+  
+  // In development, use direct RPC
+  return process.env.NEXT_PUBLIC_ONECHAIN_RPC_URL || 'https://rpc-testnet.onelabs.cc';
+}
+
+const RPC_URL = getRpcUrl();
 const PACKAGE_ID = process.env.NEXT_PUBLIC_RWA_PACKAGE_ID || '0x7b8e0864967427679b4e129f79dc332a885c6087ec9e187b53451a9006ee15f2';
 // Old package ID for backward compatibility (properties created before the fix)
 const OLD_PACKAGE_ID = '0x7df89a7822e3ab90aab72de31cdecaf44886483b88770bbda1375a5dae3c2a3a';

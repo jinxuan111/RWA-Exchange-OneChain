@@ -23,7 +23,7 @@ export const ONECHAIN_TESTNET: ChainInfo = {
   id: 1001,
   name: "OneChain Testnet",
   symbol: "ONE",
-  rpcUrl: "https://rpc-testnet.onelabs.cc:443",
+  rpcUrl: "https://rpc-testnet.onelabs.cc",
 };
 
 export const ONECHAIN_MAINNET: ChainInfo = {

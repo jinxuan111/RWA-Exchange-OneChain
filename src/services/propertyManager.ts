@@ -2,7 +2,18 @@ import { SuiClient } from '@mysten/sui/client';
 import { Transaction } from '@mysten/sui/transactions';
 import { oneChainWalletStandardService } from './onechain-wallet-standard';
 
-const RPC_URL = process.env.NEXT_PUBLIC_ONECHAIN_RPC_URL || 'https://rpc-testnet.onelabs.cc:443';
+// Helper function to get the correct RPC URL based on environment
+function getRpcUrl(): string {
+  // In production (deployed), use proxy to avoid CORS issues
+  if (typeof window !== 'undefined' && window.location.hostname !== 'localhost') {
+    return '/api/onechain-proxy';
+  }
+  
+  // In development, use direct RPC
+  return process.env.NEXT_PUBLIC_ONECHAIN_RPC_URL || 'https://rpc-testnet.onelabs.cc';
+}
+
+const RPC_URL = getRpcUrl();
 const PACKAGE_ID = process.env.NEXT_PUBLIC_RWA_PACKAGE_ID || '0x7b8e0864967427679b4e129f79dc332a885c6087ec9e187b53451a9006ee15f2';
 
 export interface Property {
