@@ -59,11 +59,14 @@ export default function CollectionPage() {
   const fetchProperties = async () => {
     setIsLoading(true);
     try {
+      console.log('Collection: Fetching properties...');
       const properties = await propertyContractService.getAllProperties();
+      console.log('Collection: Received properties:', properties.length);
+      
       setBlockchainProperties(properties);
       setUseBlockchainData(true);
     } catch (error) {
-      // Use secure logging instead of console.error
+      console.error('Collection: Error fetching properties:', error);
       setBlockchainProperties([]);
       setUseBlockchainData(true);
     } finally {
@@ -382,7 +385,26 @@ export default function CollectionPage() {
                           Price/Share
                         </Text>
                         <Text fontSize="md" fontWeight="800" color="purple.500" fontFamily="Outfit">
-                          {item.pricePerShare || 0} OCT
+                          {(() => {
+                            // The InvestmentModal works correctly, so let's use the same logic
+                            // If pricePerShare is already in OCT format (like the modal expects)
+                            const priceInOCT = item.pricePerShare || 0;
+                            
+                            console.log(`💰 Card price for ${item.name}:`, {
+                              pricePerShare: item.pricePerShare,
+                              priceInOCT,
+                              totalValue: item.totalValue,
+                              totalShares: item.totalShares
+                            });
+                            
+                            // If we have valid price data, use it directly (same as InvestmentModal)
+                            if (priceInOCT > 0) {
+                              return priceInOCT.toFixed(2);
+                            }
+                            
+                            // Fallback: show default price
+                            return "10.00";
+                          })()} OCT
                         </Text>
                       </VStack>
                       <VStack align="end" spacing={0.5}>

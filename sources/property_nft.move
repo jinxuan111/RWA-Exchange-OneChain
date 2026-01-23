@@ -156,20 +156,31 @@ module rwa_exchange::property_nft {
         // Update property state
         property.available_shares = property.available_shares - shares_to_buy;
         
-        // Add payment to treasury
+        // Split payment: exact amount to treasury, remainder back to investor
         let payment_balance = coin::into_balance(payment);
-        balance::join(&mut property.treasury, payment_balance);
+        let required_balance = balance::split(&mut payment_balance, required_amount);
+        
+        // Add exact payment to treasury
+        balance::join(&mut property.treasury, required_balance);
+        
+        // Return excess payment to investor (if any)
+        if (balance::value(&payment_balance) > 0) {
+            let refund_coin = coin::from_balance(payment_balance, ctx);
+            transfer::public_transfer(refund_coin, tx_context::sender(ctx));
+        } else {
+            balance::destroy_zero(payment_balance);
+        };
 
         let investor = tx_context::sender(ctx);
         let timestamp = tx_context::epoch_timestamp_ms(ctx);
 
-        // Create investment record
+        // Create investment record with actual payment amount
         let investment = Investment {
             id: object::new(ctx),
             property_id: object::uid_to_address(&property.id),
             investor,
             shares_owned: shares_to_buy,
-            investment_amount: required_amount,
+            investment_amount: required_amount, // Store exact amount paid
             timestamp,
         };
 

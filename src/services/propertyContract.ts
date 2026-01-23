@@ -146,21 +146,15 @@ export class PropertyContractService {
       // Create transaction following helper repo pattern EXACTLY
       const tx = new Transaction();
 
-      // Convert OCT to MIST (1 OCT = 100,000,000 MIST for OneChain)
-      const paymentInMist = Math.floor(paymentAmount * 100_000_000);
+      // Convert OCT to MIST (1 OCT = 1,000,000,000 MIST for OneChain)
+      const paymentInMist = Math.floor(paymentAmount * 1_000_000_000);
       logger.investment('Payment conversion', { 
         oct: paymentAmount, 
         mist: paymentInMist 
       });
 
-      // REAL FIX: The issue is tx.gas gets refunded! We need to use actual wallet coins
-      // Instead of splitting from gas, we need to use the user's actual OCT coins
-      // This is the EXACT same pattern as helper repo but they use a shared game object
+      // Split coins for payment
       const [coin] = tx.splitCoins(tx.gas, [paymentInMist]);
-      
-
-
-
 
       // Call the invest function with proper argument structure
       tx.moveCall({
@@ -172,15 +166,8 @@ export class PropertyContractService {
         ],
       });
 
-
-
-      // REAL FIX: Don't set gas budget at all - let wallet handle it automatically
-      // The helper repo doesn't set gas budget and it works perfectly
-      // Setting gas budget causes the split coin to be refunded
-      // tx.setGasBudget(totalBudget); // REMOVED - this was causing the refund issue
-      
-
-      logger.info('Gas budget: Auto (wallet managed) - this should fix the payment issue');
+      // Let wallet handle gas budget automatically
+      logger.info('Gas budget: Auto (wallet managed)');
 
       // Execute transaction using dapp-kit with proper error handling
       logger.transaction('Executing investment');
@@ -356,6 +343,15 @@ export class PropertyContractService {
 
       if (object.data?.content && 'fields' in object.data.content) {
         const fields = object.data.content.fields as any;
+        
+        // Simple, robust number parsing for blockchain u64 values
+        const parseU64 = (value: any): number => {
+          if (!value) return 0;
+          // Handle both string and number types
+          const num = typeof value === 'string' ? parseFloat(value) : Number(value);
+          return isNaN(num) ? 0 : num;
+        };
+        
         return {
           id: propertyId,
           name: fields.name || 'Unknown Property',
@@ -363,10 +359,10 @@ export class PropertyContractService {
           imageUrl: fields.image_url || '',
           location: fields.location || '',
           propertyType: fields.property_type || 'RWA',
-          totalValue: parseInt(fields.total_value || '0') || 0,
-          totalShares: parseInt(fields.total_shares || '0') || 0,
-          availableShares: parseInt(fields.available_shares || '0') || 0,
-          pricePerShare: parseInt(fields.price_per_share || '0') || 0,
+          totalValue: parseU64(fields.total_value),
+          totalShares: parseU64(fields.total_shares),
+          availableShares: parseU64(fields.available_shares),
+          pricePerShare: parseU64(fields.price_per_share), // Keep in MIST for accurate calculations
           rentalYield: fields.rental_yield || '0',
           isActive: fields.is_active || false,
           owner: fields.owner || '',
@@ -396,7 +392,7 @@ export class PropertyContractService {
         },
       });
       
-      // REAL FIX: Find all Investment objects from user's owned objects
+      // Find all Investment objects from user's owned objects
       const investmentObjects = allUserObjects.data.filter(obj => 
         obj.data?.type?.includes('Investment') || 
         obj.data?.type?.includes('investment') ||
@@ -406,23 +402,11 @@ export class PropertyContractService {
          'shares_owned' in obj.data.content.fields)
       );
       
-      // Create fake response structure to match existing code
-      const newInvestments = { data: investmentObjects };
-      const oldInvestments = { data: [] };
+      logger.investment('Found investment objects', { count: investmentObjects.length });
       
-
-
-      // Combine investments from both packages
-      const allObjects = [...newInvestments.data, ...oldInvestments.data];
-      const objects = { data: allObjects };
-
-      logger.investment('Found investment objects', { count: objects.data.length });
-      
-
-
       // Fetch details for each investment
       const investments = await Promise.all(
-        objects.data.map(async (obj: any) => {
+        investmentObjects.map(async (obj: any) => {
           const fields = obj.data?.content?.fields;
           if (!fields) return null;
 
@@ -434,7 +418,7 @@ export class PropertyContractService {
             propertyId: fields.property_id,
             propertyName: propertyDetails?.name || 'Unknown Property',
             shares: parseInt(fields.shares_owned || fields.shares || '0') || 0,
-            investmentAmount: (parseInt(fields.investment_amount || '0') || 0) / 100_000_000, // Convert from MIST to OCT (8 decimals)
+            investmentAmount: (parseInt(fields.investment_amount || '0') || 0) / 1_000_000_000, // Convert from MIST to OCT (9 decimals for OneChain)
             timestamp: fields.timestamp,
             propertyDetails,
           };

@@ -1,18 +1,18 @@
-import { 
-  Box, 
-  Flex, 
-  Heading, 
-  Img, 
-  Text, 
-  VStack, 
-  HStack, 
-  Card, 
-  CardBody, 
-  SimpleGrid, 
-  Badge, 
-  Stat, 
-  StatLabel, 
-  StatNumber, 
+import {
+  Box,
+  Flex,
+  Heading,
+  Img,
+  Text,
+  VStack,
+  HStack,
+  Card,
+  CardBody,
+  SimpleGrid,
+  Badge,
+  Stat,
+  StatLabel,
+  StatNumber,
   StatHelpText,
   Spinner,
   Alert,
@@ -55,7 +55,7 @@ interface PortfolioStats {
 export function ProfileSection({ address }: Props) {
   const avatar = useMemo(() => blo((address || "0x").slice(0, 42) as `0x${string}`), [address]);
   const { isConnected, balance } = useWalletStandard();
-  
+
   const [investments, setInvestments] = useState<Investment[]>([]);
   const [portfolioStats, setPortfolioStats] = useState<PortfolioStats>({
     totalInvestments: 0,
@@ -89,45 +89,52 @@ export function ProfileSection({ address }: Props) {
   const loadUserInvestments = async () => {
     setIsLoading(true);
     setError(null);
-    
+
     try {
-      // Get user's investments from local tracking
-      const { investmentTracker } = await import('@/services/investmentTracker');
-      const userInvestments = investmentTracker.getUserInvestments(address);
-      
+      // Get user's investments from blockchain service
+      const { propertyContractService } = await import('@/services/propertyContract');
+      const userInvestments = await propertyContractService.getUserInvestments(address);
+
       console.log('Loading investments for user:', address);
-      console.log('Found investments:', userInvestments);
-      
-      // Convert tracked investments to profile format
-      const trackedInvestments: Investment[] = userInvestments.map(inv => ({
+      console.log('Found on-chain investments:', userInvestments);
+
+      // Convert blockchain investments to profile format
+      const trackedInvestments: Investment[] = userInvestments.map((inv: any) => ({
         id: inv.id,
-        propertyId: inv.assetId,
-        propertyName: inv.assetName,
-        sharesOwned: inv.sharesOwned,
-        investmentAmount: inv.investmentAmount / 100, // Convert cents to dollars
-        timestamp: inv.timestamp,
-        imageUrl: inv.imageUrl,
-        currentValue: (inv.sharesOwned * inv.pricePerShare) / 100, // Convert cents to dollars
-        rentalYield: inv.rentalYield
+        propertyId: inv.propertyId,
+        propertyName: inv.propertyName,
+        sharesOwned: inv.shares, // mapped from 'shares'
+        investmentAmount: inv.investmentAmount, // already in OCT
+        timestamp: Number(inv.timestamp),
+        imageUrl: inv.propertyDetails?.imageUrl || "https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=400&h=200&fit=crop&crop=center",
+        currentValue: inv.investmentAmount, // For now, assume current value = investment amount (can be improved with pricePerShare)
+        rentalYield: inv.propertyDetails?.rentalYield || "0%"
       }));
-      
-      // If user has tracked investments, use them
+
+      // Update state
       if (trackedInvestments.length > 0) {
         setInvestments(trackedInvestments);
-        
-        // Calculate portfolio stats from tracked investments
-        const stats = investmentTracker.getUserPortfolioStats(address);
+
+        // Calculate portfolio stats from real data
+        const totalValue = trackedInvestments.reduce((sum, inv) => sum + inv.investmentAmount, 0);
+        const totalShares = trackedInvestments.reduce((sum, inv) => sum + inv.sharesOwned, 0);
+
+        const totalYield = trackedInvestments.reduce((sum, inv) => {
+          const yieldNum = parseFloat(inv.rentalYield.replace('%', ''));
+          return sum + yieldNum;
+        }, 0);
+        const averageYield = trackedInvestments.length > 0 ? totalYield / trackedInvestments.length : 0;
+
         setPortfolioStats({
-          totalInvestments: stats.totalInvestments,
-          totalValue: stats.totalValue,
-          totalShares: stats.totalShares,
-          averageYield: stats.averageYield
+          totalInvestments: trackedInvestments.length,
+          totalValue: totalValue,
+          totalShares: totalShares,
+          averageYield: averageYield
         });
-        
-        console.log('Loaded', trackedInvestments.length, 'tracked investments');
+
+        console.log('Loaded', trackedInvestments.length, 'investments from blockchain');
       } else {
-        // If no tracked investments, show sample data for demo
-        // Show empty state for new users
+        // Empty state
         setInvestments([]);
         setPortfolioStats({
           totalInvestments: 0,
@@ -135,10 +142,10 @@ export function ProfileSection({ address }: Props) {
           totalShares: 0,
           averageYield: 0
         });
-        
-        console.log('No investments found for user');
+
+        console.log('No investments found on-chain for user');
       }
-      
+
     } catch (err) {
       console.error('Failed to load user investments:', err);
       setError(err instanceof Error ? err.message : 'Failed to load investments');
@@ -152,7 +159,7 @@ export function ProfileSection({ address }: Props) {
   };
 
   const formatCurrency = (amount: number) => {
-    return `$${amount.toFixed(2)}`;
+    return `${amount.toFixed(2)} OCT`;
   };
 
   return (
@@ -227,9 +234,22 @@ export function ProfileSection({ address }: Props) {
               </Flex>
 
               {isLoading ? (
-                <Flex justify="center" py={8}>
-                  <Spinner size="lg" />
-                </Flex>
+                <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={6}>
+                  {[1, 2, 3].map((i) => (
+                    <Card key={i} variant="outline" opacity={0.7}>
+                      <CardBody>
+                        <VStack spacing={4}>
+                          <Box w="full" h="150px" bg="gray.100" _dark={{ bg: "gray.700" }} rounded="md" animation="pulse 2s infinite" />
+                          <VStack spacing={2} w="full">
+                            <Box w="60%" h="20px" bg="gray.100" _dark={{ bg: "gray.700" }} rounded="md" />
+                            <Box w="full" h="1px" bg="gray.100" _dark={{ bg: "gray.700" }} my={2} />
+                            <Box w="40%" h="16px" bg="gray.100" _dark={{ bg: "gray.700" }} rounded="md" />
+                          </VStack>
+                        </VStack>
+                      </CardBody>
+                    </Card>
+                  ))}
+                </SimpleGrid>
               ) : error ? (
                 <Alert status="error" rounded="lg">
                   <AlertIcon />
@@ -258,40 +278,40 @@ export function ProfileSection({ address }: Props) {
                             objectFit="cover"
                             rounded="md"
                           />
-                          
+
                           <VStack spacing={2} w="full">
                             <Heading size="sm" textAlign="center">
                               {investment.propertyName}
                             </Heading>
-                            
+
                             <HStack justify="space-between" w="full">
                               <Text fontSize="sm" color="gray.500">Shares:</Text>
                               <Badge colorScheme="blue">{investment.sharesOwned}</Badge>
                             </HStack>
-                            
+
                             <HStack justify="space-between" w="full">
                               <Text fontSize="sm" color="gray.500">Invested:</Text>
                               <Text fontSize="sm" fontWeight="600">
                                 {formatCurrency(investment.investmentAmount)}
                               </Text>
                             </HStack>
-                            
+
                             <HStack justify="space-between" w="full">
                               <Text fontSize="sm" color="gray.500">Current Value:</Text>
                               <Text fontSize="sm" fontWeight="600" color="green.500">
                                 {formatCurrency(investment.currentValue)}
                               </Text>
                             </HStack>
-                            
+
                             <HStack justify="space-between" w="full">
                               <Text fontSize="sm" color="gray.500">Yield:</Text>
                               <Badge colorScheme="purple" variant="subtle">
                                 {investment.rentalYield}
                               </Badge>
                             </HStack>
-                            
+
                             <Divider />
-                            
+
                             <HStack justify="space-between" w="full">
                               <Text fontSize="xs" color="gray.400">
                                 Invested: {formatDate(investment.timestamp)}

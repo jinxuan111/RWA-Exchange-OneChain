@@ -22,16 +22,16 @@ import {
   Card,
   CardBody,
   Image,
+  Button,
 } from "@chakra-ui/react";
 import { useMemo, useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { FaLink, FaNetworkWired, FaWallet, FaChartLine, FaPercentage, FaHome } from "react-icons/fa";
 import { FiTrendingUp, FiDollarSign } from "react-icons/fi";
 import { NFT_CONTRACTS, type NftContract, getDefaultNftContract } from "@/consts/nft_contracts";
-import { useOneChainWallet } from "@/hooks/useOneChainWallet";
-import { oneChainService } from "@/services/onechain";
-import { useWalletStandard } from "@/hooks/useWalletStandard";
+import { useDappKit } from "@/hooks/useDappKit";
 import { logger } from "@/utils/secureLogger";
+import { mistToOct, calculateInvestmentAmount } from "@/utils/conversion";
 
 const MotionBox = motion(Box);
 const MotionCard = motion(Card);
@@ -45,7 +45,7 @@ function getPropertyImage(propertyName: string, index: number): string {
     "https://images.unsplash.com/photo-1448630360428-65456885c650?w=400&h=200&fit=crop&crop=center", // House exterior
     "https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=400&h=200&fit=crop&crop=center", // Modern home
   ];
-  
+
   // Use property name to determine image type
   const name = propertyName.toLowerCase();
   if (name.includes('hotel') || name.includes('resort')) {
@@ -55,88 +55,9 @@ function getPropertyImage(propertyName: string, index: number): string {
   } else if (name.includes('apartment') || name.includes('condo')) {
     return "https://images.unsplash.com/photo-1582407947304-fd86f028f716?w=400&h=200&fit=crop&crop=center";
   }
-  
+
   // Default to cycling through images based on index
   return images[index % images.length];
-}
-
-// Enhanced sparkline with better visuals
-function Sparkline({ data, height = 40 }: { data: number[]; height?: number }) {
-  const isDark = useColorModeValue(false, true);
-  
-  if (!data.length || data.every(v => v === 0)) {
-    return (
-      <Box h={`${height}px`} display="flex" alignItems="center" justifyContent="center">
-        <Text fontSize="sm" color="gray.400" fontStyle="italic">
-          No data to display
-        </Text>
-      </Box>
-    );
-  }
-  
-  const max = Math.max(...data);
-  const min = Math.min(...data);
-  const range = Math.max(max - min, max * 0.1); // Ensure some range
-  const stepX = 100 / Math.max(data.length - 1, 1);
-  
-  const points = data
-    .map((v, i) => `${i * stepX},${100 - ((v - min) / range) * 80 + 10}`) // Add padding
-    .join(" ");
-    
-  const areaPoints = `0,100 ${points} 100,100`;
-  
-  return (
-    <Box h={`${height}px`} position="relative">
-      <svg viewBox="0 0 100 100" preserveAspectRatio="none" width="100%" height="100%">
-        <defs>
-          <linearGradient id="lineGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-            <stop offset="0%" stopColor="#667eea" />
-            <stop offset="100%" stopColor="#764ba2" />
-          </linearGradient>
-          <linearGradient id="areaGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-            <stop offset="0%" stopColor="rgba(102,126,234,0.3)" />
-            <stop offset="100%" stopColor="rgba(118,75,162,0.1)" />
-          </linearGradient>
-        </defs>
-        
-        {/* Area fill */}
-        <polygon 
-          fill="url(#areaGradient)" 
-          points={areaPoints}
-        />
-        
-        {/* Line */}
-        <polyline 
-          fill="none" 
-          stroke="url(#lineGradient)" 
-          strokeWidth="3" 
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          points={points} 
-        />
-        
-        {/* Data points */}
-        {data.map((v, i) => (
-          <circle
-            key={i}
-            cx={i * stepX}
-            cy={100 - ((v - min) / range) * 80 + 10}
-            r="1.5"
-            fill="url(#lineGradient)"
-            opacity="0.8"
-          />
-        ))}
-      </svg>
-      
-      {/* Value labels */}
-      <Box position="absolute" top="0" left="0" fontSize="xs" color="gray.500">
-        {max > 0 ? `${max.toFixed(2)} OCT` : '0 OCT'}
-      </Box>
-      <Box position="absolute" bottom="0" right="0" fontSize="xs" color="gray.500">
-        {data.length > 0 ? `${data[data.length - 1].toFixed(2)} OCT` : '0 OCT'}
-      </Box>
-    </Box>
-  );
 }
 
 function isInCategory(metadata: any, category: "property" | "carbon"): boolean {
@@ -187,8 +108,7 @@ interface DashboardStats {
 }
 
 export default function Dashboard() {
-  const { account, isConnected } = useOneChainWallet();
-  const { account: walletAccount, balance } = useWalletStandard();
+  const { account, isConnected, balance } = useDappKit();
 
   const gradient = useColorModeValue(
     "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
@@ -232,25 +152,51 @@ export default function Dashboard() {
 
   // Load dashboard data
   useEffect(() => {
-    if (isConnected && (account?.address || walletAccount?.address)) {
+    if (isConnected && account?.address) {
       loadDashboardData();
     }
-  }, [isConnected, account?.address, walletAccount?.address]);
+  }, [isConnected, account?.address]);
 
   const loadDashboardData = async () => {
     setIsLoading(true);
     try {
-      const userAddress = account?.address || walletAccount?.address;
+      const userAddress = account?.address;
       if (!userAddress) {
+        console.log('Dashboard: No user address available');
         setIsLoading(false);
         return;
       }
+
+      console.log('Dashboard: Loading data for address:', userAddress);
 
       // Import propertyContractService for better structured data
       const { propertyContractService } = await import('@/services/propertyContract');
 
       // Get user's investments from blockchain using propertyContractService
       const userInvestments = await propertyContractService.getUserInvestments(userAddress);
+
+      console.log('Dashboard: Received investments:', userInvestments.length);
+      console.log('Dashboard: First investment sample:', userInvestments[0]);
+      
+      // Quick test: calculate total using same logic as portfolio
+      const quickTotal = userInvestments.reduce((sum: number, inv: any) => {
+        const shares = Number(inv.shares) || 0;
+        const pricePerShareMist = Number(inv.propertyDetails?.pricePerShare) || 0;
+        const pricePerShare = pricePerShareMist / 1_000_000_000;
+        
+        let amount = shares * pricePerShare;
+        if (pricePerShare === 0 && shares > 0) {
+          const fallback = Number(inv.investmentAmount) || 0;
+          if (fallback > 0) {
+            amount = fallback;
+          } else {
+            amount = shares * 10; // Same fallback as portfolio
+          }
+        }
+        return sum + amount;
+      }, 0);
+      
+      console.log('Dashboard: Quick total calculation:', quickTotal);
 
       // Use secure logging to avoid exposing sensitive data
       logger.investment('Dashboard loading investments', { count: userInvestments.length });
@@ -271,9 +217,39 @@ export default function Dashboard() {
         const yieldStr = propertyDetails?.rentalYield || propertyDetails?.yield || propertyDetails?.expectedYield || '0';
         const yield_ = parseFloat(yieldStr.toString().replace('%', '')) || 0;
 
+        // EXACT SAME CALCULATION AS PORTFOLIO PAGE
+        const pricePerShareMist = Number(propertyDetails?.pricePerShare) || 0;
+        const pricePerShare = pricePerShareMist / 1_000_000_000; // Convert MIST to OCT (9 decimals for OneChain)
+        
+        console.log('Dashboard investment calculation debug:', {
+          propertyName: investment.propertyName,
+          sharesOwned,
+          pricePerShareMist,
+          pricePerShare,
+          propertyDetails: investment.propertyDetails,
+          hasPropertyDetails: !!investment.propertyDetails,
+          rawPricePerShare: investment.propertyDetails?.pricePerShare
+        });
+        
+        // Use EXACT same fallback logic as portfolio page
+        let currentValue = sharesOwned * pricePerShare;
+        
+        // Fallback: If pricePerShare is 0 but we have shares, try to use investmentAmount
+        if (pricePerShare === 0 && sharesOwned > 0) {
+          const fallbackAmount = Number(investmentAmount) || 0;
+          if (fallbackAmount > 0) {
+            currentValue = fallbackAmount;
+            console.log('Dashboard using fallback investmentAmount:', fallbackAmount);
+          } else {
+            // Last resort: estimated price (same as portfolio page)
+            console.warn('Dashboard: No price data available, using estimated price');
+            currentValue = sharesOwned * 10; // Assuming 10 OCT per share as shown in UI
+          }
+        }
+
         // Accumulate totals
         totalShares += sharesOwned;
-        totalValue += investmentAmount;
+        totalValue += currentValue;
         totalYield += yield_;
 
         // Categorize by property type
@@ -290,7 +266,8 @@ export default function Dashboard() {
           propertyId: investment.propertyId,
           propertyName: investment.propertyName || 'Unknown Property',
           sharesOwned: sharesOwned,
-          investmentAmount: investmentAmount,
+          investmentAmount: investmentAmount, // Original cost
+          currentValue: currentValue,         // Current market value
           yield: yield_,
           location: propertyDetails?.location || '',
           imageUrl: propertyDetails?.imageUrl || propertyDetails?.image || getPropertyImage(investment.propertyName || 'Property', index),
@@ -309,8 +286,10 @@ export default function Dashboard() {
         carbonCount
       };
 
+      console.log('Dashboard: Calculated stats:', newStats);
+
       // Stats calculated successfully - using secure logging to avoid exposing sensitive data
-      logger.investment('Dashboard stats calculated', { 
+      logger.investment('Dashboard stats calculated', {
         totalInvestments: newStats.totalInvestments,
         totalValue: newStats.totalValue,
         totalShares: newStats.totalShares
@@ -321,6 +300,19 @@ export default function Dashboard() {
 
     } catch (error) {
       logger.error('Failed to load dashboard data', error);
+      console.error('Dashboard: Failed to load data:', error);
+
+      // Check if it's a network/RPC error
+      const isNetworkError = error instanceof Error && (
+        error.message.includes('fetch failed') ||
+        error.message.includes('timeout') ||
+        error.message.includes('ECONNREFUSED') ||
+        error.message.includes('Failed to connect to OneChain')
+      );
+
+      if (isNetworkError) {
+        console.warn('Dashboard: OneChain network connectivity issues detected');
+      }
 
       // On error, show empty state
       setDashboardStats({
@@ -337,27 +329,15 @@ export default function Dashboard() {
     }
   };
 
-  // Generate sparkline data based on real portfolio performance
-  const sparkData = useMemo(() => {
-    if (investments.length === 0 || dashboardStats.totalValue === 0) {
-      // Show empty state line
-      return [0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
-    }
-
-    const baseValue = dashboardStats.totalValue;
-    const avgYield = dashboardStats.averageYield / 100;
-    const data = [];
-
-    // Create realistic growth trend based on actual data
-    for (let i = 0; i < 10; i++) {
-      const timeProgress = i / 9;
-      const yieldGrowth = baseValue * avgYield * timeProgress * 0.5; // More realistic growth
-      const volatility = Math.sin(i * 0.5) * baseValue * 0.05; // Smoother volatility
-      data.push(Math.max(0, baseValue + yieldGrowth + volatility));
-    }
-
-    return data;
-  }, [investments, dashboardStats]);
+  // Calculate projected real income based on on-chain data
+  const projectedIncome = useMemo(() => {
+    if (dashboardStats.totalValue === 0) return { annual: 0, monthly: 0 };
+    const annual = (dashboardStats.totalValue * (dashboardStats.averageYield / 100));
+    return {
+      annual,
+      monthly: annual / 12
+    };
+  }, [dashboardStats]);
 
   const oneChainContracts = NFT_CONTRACTS;
   const isOneChainSelected = true;
@@ -453,25 +433,36 @@ export default function Dashboard() {
               </VStack>
 
               <VStack align="end" spacing={2}>
-                <Select
-                  maxW="320px"
-                  value={selectedCollection?.address || ''}
-                  onChange={(e) => {
-                    const next = NFT_CONTRACTS.find((c) => c.address === e.target.value);
-                    if (next) setSelectedCollection(next);
-                  }}
-                  bg="white"
-                  color="gray.800"
-                  rounded="xl"
-                  fontWeight="600"
-                  _dark={{ bg: "gray.700", color: "white" }}
-                >
-                  {oneChainContracts.map((c) => (
-                    <option key={c.address} value={c.address}>
-                      {(c.title ?? c.slug ?? c.address.slice(0, 8))}
-                    </option>
-                  ))}
-                </Select>
+                <HStack spacing={2}>
+                  <Select
+                    maxW="280px"
+                    value={selectedCollection?.address || ''}
+                    onChange={(e) => {
+                      const next = NFT_CONTRACTS.find((c) => c.address === e.target.value);
+                      if (next) setSelectedCollection(next);
+                    }}
+                    bg="white"
+                    color="gray.800"
+                    rounded="xl"
+                    fontWeight="600"
+                    _dark={{ bg: "gray.700", color: "white" }}
+                  >
+                    {oneChainContracts.map((c) => (
+                      <option key={c.address} value={c.address}>
+                        {(c.title ?? c.slug ?? c.address.slice(0, 8))}
+                      </option>
+                    ))}
+                  </Select>
+                  <Button
+                    colorScheme="purple"
+                    size="sm"
+                    onClick={loadDashboardData}
+                    isLoading={isLoading}
+                    rounded="xl"
+                  >
+                    🔄 Refresh
+                  </Button>
+                </HStack>
                 <Text fontSize="xs" color={textColor}>OneChain • {selectedCollection?.type || 'N/A'}</Text>
               </VStack>
             </Flex>
@@ -490,7 +481,7 @@ export default function Dashboard() {
           <PremiumStatCard
             label="Portfolio Value"
             value={`${dashboardStats.totalValue.toFixed(2)} OCT`}
-            hint={isConnected ? `Wallet: ${(parseFloat(balance || '0') / 100_000_000).toFixed(4)} OCT` : "Connect wallet"}
+            hint={isConnected ? `Wallet: ${balance} OCT` : "Connect wallet"}
             icon={FaWallet}
             delay={0.1}
           />
@@ -525,14 +516,50 @@ export default function Dashboard() {
           >
             <CardBody p={6}>
               <Heading size="md" mb={2} fontFamily="Outfit" fontWeight="800">
-                Portfolio Value Trend
+                Projected Yield Analysis
               </Heading>
-              <Text color={textColor} mb={4} fontSize="sm">
-                {dashboardStats.totalInvestments > 0
-                  ? "Based on your investment performance"
-                  : "Connect wallet and invest to see trends"}
+              <Text color={textColor} mb={6} fontSize="sm">
+                Estimated income based on your current portfolio
               </Text>
-              <Sparkline data={sparkData} height={100} />
+
+              <SimpleGrid columns={2} spacing={4}>
+                <Box 
+                  p={4} 
+                  bg="purple.50" 
+                  rounded="xl" 
+                  borderWidth="2px" 
+                  borderColor="purple.200"
+                  _dark={{ bg: "purple.900", borderColor: "purple.700" }}
+                >
+                  <Text fontSize="xs" color="purple.600" _dark={{ color: "purple.300" }} fontWeight="700" textTransform="uppercase">
+                    Annual Income
+                  </Text>
+                  <Text fontSize="xl" fontWeight="800" color="purple.600" _dark={{ color: "purple.300" }}>
+                    {projectedIncome.annual.toFixed(2)} OCT
+                  </Text>
+                </Box>
+                <Box 
+                  p={4} 
+                  bg="green.50" 
+                  rounded="xl" 
+                  borderWidth="2px" 
+                  borderColor="green.200"
+                  _dark={{ bg: "green.900", borderColor: "green.700" }}
+                >
+                  <Text fontSize="xs" color="green.600" _dark={{ color: "green.300" }} fontWeight="700" textTransform="uppercase">
+                    Monthly Income
+                  </Text>
+                  <Text fontSize="xl" fontWeight="800" color="green.600" _dark={{ color: "green.300" }}>
+                    {projectedIncome.monthly.toFixed(2)} OCT
+                  </Text>
+                </Box>
+              </SimpleGrid>
+
+              <Box mt={4}>
+                <Text fontSize="xs" color="gray.600" _dark={{ color: "gray.400" }} textAlign="center" fontWeight="500">
+                  * Projections based on current rental yield rates
+                </Text>
+              </Box>
             </CardBody>
           </MotionCard>
 
@@ -636,17 +663,40 @@ export default function Dashboard() {
                   justifyContent="center"
                   _dark={{ bg: "gray.700" }}
                 >
-                  <Icon as={FaHome} boxSize={8} color="gray.400" />
+                  <Icon as={FaHome} boxSize={8} color="gray.500" _dark={{ color: "gray.400" }} />
                 </Box>
                 <VStack spacing={2}>
                   <Text color={textColor} fontSize="lg" fontWeight="600">
-                    {isConnected ? "No investments yet" : "Connect your wallet"}
+                    {isConnected ? "No investments found" : "Connect your wallet"}
                   </Text>
-                  <Text color={textColor} fontSize="sm" textAlign="center" maxW="300px">
-                    {isConnected 
-                      ? "Start building your tokenized real estate portfolio by investing in properties from our collection." 
+                  <Text color={textColor} fontSize="sm" textAlign="center" maxW="400px">
+                    {isConnected
+                      ? "No investments found for this wallet. If you just made an investment, try the refresh button above."
                       : "Connect your wallet to view your investment portfolio and track your tokenized asset holdings."}
                   </Text>
+                  {isConnected && (
+                    <HStack spacing={3} mt={4}>
+                      <Button
+                        as="a"
+                        href="/collection"
+                        colorScheme="purple"
+                        size="sm"
+                        rounded="xl"
+                      >
+                        Browse Properties
+                      </Button>
+                      <Button
+                        as="a"
+                        href="/my-investments"
+                        variant="outline"
+                        colorScheme="purple"
+                        size="sm"
+                        rounded="xl"
+                      >
+                        Check Portfolio
+                      </Button>
+                    </HStack>
+                  )}
                 </VStack>
               </VStack>
             ) : (
@@ -698,7 +748,7 @@ function PremiumStatCard({
       <CardBody p={5}>
         <Flex align="center" justify="space-between">
           <VStack align="start" spacing={1}>
-            <Text fontSize="xs" color="gray.500" fontWeight="600" textTransform="uppercase">
+            <Text fontSize="xs" color="gray.600" _dark={{ color: "gray.300" }} fontWeight="600" textTransform="uppercase">
               {label}
             </Text>
             <Text
@@ -711,7 +761,7 @@ function PremiumStatCard({
               {value}
             </Text>
             {hint && (
-              <Text fontSize="xs" color="gray.500">
+              <Text fontSize="xs" color="gray.600" _dark={{ color: "gray.300" }}>
                 {hint}
               </Text>
             )}
