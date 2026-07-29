@@ -1,5 +1,6 @@
 
 <div align="center">
+  <img width="1672" height="941" alt="rwaexcahnge" src="https://github.com/user-attachments/assets/32394c22-4ec0-4ced-a5e6-c1c467a19ad7" />
 
   <h1>OneRWA Marketplace</h1>
   
@@ -7,7 +8,6 @@
 
   
   <p><strong>🚀 Built on OneChain - the Sui-based blockchain optimized for real-world asset tokenization.</strong></p>
-  <img width="1672" height="941" alt="rwaexcahnge" src="https://github.com/user-attachments/assets/32394c22-4ec0-4ced-a5e6-c1c467a19ad7" />
 
   
   <p>
