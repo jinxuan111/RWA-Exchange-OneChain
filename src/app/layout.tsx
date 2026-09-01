@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import { Providers } from "@/components/shared/Providers";
 import { DappKitProvider } from "@/providers/DappKitProvider";
-import { Navbar } from "@/components/shared/Navbar";
-import { Footer } from "@/components/shared/Footer";
+import { Navbar } from "../components/shared/Navbar";  // 👈 改成相对路径
+import { Footer } from "../components/shared/Footer";  // 👈 也改成相对路径
 
 export const metadata: Metadata = {
 	title: "RWA ExChange",

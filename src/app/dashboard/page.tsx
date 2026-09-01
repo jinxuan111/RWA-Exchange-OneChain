@@ -5,7 +5,7 @@ import { WalletGuard } from "@/components/WalletGuard";
 
 export default function DashboardPage() {
   return (
-    <WalletGuard requireWallet={true}>
+    <WalletGuard>  {/* 👈 去掉 requireWallet={true} */}
       <Dashboard />
     </WalletGuard>
   );

@@ -98,7 +98,7 @@ export default function CollectionPage() {
   });
 
   return (
-    <WalletGuard requireWallet={true}>
+    <WalletGuard>  {/* 👈 这里改了，去掉 requireWallet={true} */}
       <Box
         bg={gradient}
         minH="100vh"

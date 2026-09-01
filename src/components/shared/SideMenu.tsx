@@ -23,18 +23,18 @@ import {
 import { useRef } from "react";
 import { FaRegMoon } from "react-icons/fa";
 import { IoSunny } from "react-icons/io5";
-import { useOneChainWallet } from "@/hooks/useOneChainWallet";
-import { OneChainWalletButton } from "./OneChainWallet";
+// import { useOneChainWallet } from "@/hooks/useOneChainWallet";  // 👈 注释掉
+// import { OneChainWalletButton } from "./OneChainWallet";       // 👈 注释掉
 
 export function SideMenu() {
   const { isOpen, onOpen, onClose } = useDisclosure();
   const btnRef = useRef<HTMLButtonElement>(null);
   const { colorMode, toggleColorMode } = useColorMode();
-  const { 
-    isConnected, 
-    account, 
-    disconnect 
-  } = useOneChainWallet();
+  // const { 
+  //   isConnected, 
+  //   account, 
+  //   disconnect 
+  // } = useOneChainWallet();  // 👈 注释掉
 
   return (
     <>
@@ -56,36 +56,13 @@ export function SideMenu() {
           </DrawerHeader>
           <DrawerBody>
             <VStack spacing={4} align="stretch">
+              {/* OneChainWalletButton 已移除 */}
               <Box>
-                <OneChainWalletButton />
+                {/* <OneChainWalletButton /> */}  {/* 👈 注释掉 */}
               </Box>
 
-              {isConnected && account && (
-                <>
-                  <Divider />
-                  <VStack spacing={2} align="stretch">
-                    <Text fontSize="sm" fontWeight="bold" color="gray.600">
-                      OneChain Network
-                    </Text>
-                    
-                    <HStack justify="space-between">
-                      <Text fontSize="sm">Status:</Text>
-                      <Badge colorScheme="green" variant="solid">
-                        Connected
-                      </Badge>
-                    </HStack>
+              {/* 钱包连接状态显示已移除 */}
 
-                    <HStack justify="space-between">
-                      <Text fontSize="sm">Network:</Text>
-                      <Badge colorScheme="blue" variant="solid">
-                        Sui Testnet
-                      </Badge>
-                    </HStack>
-                  </VStack>
-                  <Divider />
-                </>
-              )}
-              
               <Link href="/landing" _hover={{ textDecoration: "none" }} onClick={onClose}>
                 <Button variant="ghost" w="full" justifyContent="flex-start">
                   About
@@ -104,28 +81,18 @@ export function SideMenu() {
                 </Button>
               </Link>
               
-              {isConnected && account && (
-                <Link href="/profile" _hover={{ textDecoration: "none" }} onClick={onClose}>
-                  <Button variant="ghost" w="full" justifyContent="flex-start">
-                    Profile
-                  </Button>
-                </Link>
-              )}
+              {/* Profile 链接已移除，因为需要钱包连接状态 */}
+              {/* 
+              <Link href="/profile" _hover={{ textDecoration: "none" }} onClick={onClose}>
+                <Button variant="ghost" w="full" justifyContent="flex-start">
+                  Profile
+                </Button>
+              </Link>
+              */}
             </VStack>
           </DrawerBody>
           <DrawerFooter>
-            {isConnected && (
-              <Button
-                onClick={() => {
-                  disconnect();
-                  onClose();
-                }}
-                colorScheme="red"
-                variant="outline"
-              >
-                Disconnect Wallet
-              </Button>
-            )}
+            {/* Disconnect 按钮已移除 */}
           </DrawerFooter>
         </DrawerContent>
       </Drawer>
