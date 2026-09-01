@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import { Providers } from "@/components/shared/Providers";
-import { DappKitProvider } from "@/providers/DappKitProvider";
-import { Navbar } from "../components/shared/Navbar";  // 👈 改成相对路径
-import { Footer } from "../components/shared/Footer";  // 👈 也改成相对路径
+// import { DappKitProvider } from "@/providers/DappKitProvider";
+import Navbar from "../components/shared/Navbar";  // 👈 去掉花括号
+import Footer from "../components/shared/Footer";  // 👈 去掉花括号
 
 export const metadata: Metadata = {
 	title: "RWA ExChange",
@@ -26,13 +26,11 @@ export default function RootLayout({
 				/>
 			</head>
 			<body suppressHydrationWarning={true} style={{ fontFamily: "Inter, sans-serif" }}>
-				<DappKitProvider>
-					<Providers>
-						<Navbar />
-						{children}
-						<Footer />
-					</Providers>
-				</DappKitProvider>
+				<Providers>
+					<Navbar />
+					{children}
+					<Footer />
+				</Providers>
 			</body>
 		</html>
 	);

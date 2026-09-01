@@ -1,21 +1,9 @@
-import React, { useEffect } from 'react';
-import { Provider } from 'react-redux';
-import { store } from '@/store';
-import { initializeFromStorage } from '@/store/walletSlice';
+"use client";
 
-interface WalletProviderProps {
-  children: React.ReactNode;
+import { ReactNode } from "react";
+
+export function WalletProvider({ children }: { children: ReactNode }) {
+  return <>{children}</>;
 }
 
-export const WalletProvider: React.FC<WalletProviderProps> = ({ children }) => {
-  useEffect(() => {
-    // Initialize wallet state from localStorage when the app starts
-    store.dispatch(initializeFromStorage());
-  }, []);
-
-  return (
-    <Provider store={store}>
-      {children}
-    </Provider>
-  );
-};
+export default WalletProvider;
