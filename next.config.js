@@ -2,7 +2,6 @@
 const nextConfig = {
   webpack: (config, { isServer }) => {
     if (!isServer) {
-      // Fallbacks for browser environment
       config.resolve.fallback = {
         ...config.resolve.fallback,
         fs: false,
@@ -17,10 +16,11 @@ const nextConfig = {
         assert: false,
         os: false,
         path: false,
+        encoding: false,  // 👈 关键：忽略 encoding
       };
     }
 
-    // Ignore scrypt native module compilation issues
+    // 忽略 scrypt
     config.externals = config.externals || [];
     config.externals.push({
       'scrypt': 'scrypt',

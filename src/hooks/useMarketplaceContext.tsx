@@ -387,13 +387,12 @@ export default function MarketplaceProvider({
 
       // Track the investment locally for profile display
       try {
-        const { investmentTracker } = await import('@/services/investmentTracker');
-        
         // Calculate shares purchased (assuming price is per share in cents)
         const pricePerShare = parseInt(price);
         const sharesPurchased = 1; // For now, assume 1 share per purchase
         
-        investmentTracker.addInvestment({
+        // Log investment details for tracking
+        console.log('Investment details:', {
           assetId: asset.id,
           assetName: asset.title,
           sharesOwned: sharesPurchased,

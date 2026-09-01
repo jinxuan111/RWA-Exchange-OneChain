@@ -1,56 +1,47 @@
 "use client";
 
-import { useState } from 'react';
-
-type Transaction = any;
+import { useAccount, useConnect, useDisconnect, useBalance } from "wagmi";
+import { injected } from "wagmi/connectors";
 
 export function useDappKit() {
-  const [account, setAccount] = useState<any>(null);
-  const [isConnected, setIsConnected] = useState(false);
-  const [balance, setBalance] = useState('0');
-  const [wallets, setWallets] = useState<any[]>([]);
+  const { address, isConnected } = useAccount();
+  const { connect, connectors } = useConnect();
+  const { disconnect } = useDisconnect();
+  const { data: balance } = useBalance({ address });
 
   const connectWallet = async () => {
-    // 模拟连接，不实际连接任何钱包
-    console.log('Wallet connection is disabled in this version');
-    return { success: false, message: 'Wallet connection disabled' };
+    console.log("🔗 connectWallet called");
+    console.log("📡 Available connectors:", connectors);
+    
+    try {
+      // 查找 injected 连接器
+      const injectedConnector = connectors.find(c => c.id === 'injected' || c.type === 'injected');
+      console.log("🔌 Using connector:", injectedConnector?.name || injectedConnector?.id);
+      
+      if (injectedConnector) {
+        const result = await connect({ connector: injectedConnector });
+        console.log("✅ Connect result:", result);
+      } else {
+        console.error("❌ No injected connector found!");
+      }
+    } catch (error) {
+      console.error("❌ Connect error:", error);
+    }
   };
 
-  const signAndExecuteTransaction = async (transaction: any): Promise<any> => {
-    console.warn('Transaction signing is disabled in this version');
-    throw new Error('Transaction signing is disabled. Please enable wallet integration.');
-  };
-
-  const disconnectWallet = () => {
-    setAccount(null);
-    setIsConnected(false);
-    setBalance('0');
-  };
-
-  const refreshBalance = async () => {
-    // 模拟余额
-    setBalance('0');
+  const getBalance = () => {
+    const formatted = (balance as any)?.formatted;
+    if (formatted) {
+      return parseFloat(formatted).toFixed(4);
+    }
+    return "0";
   };
 
   return {
-    // Account info
-    account,
-    address: account?.address || null,
+    account: address ? { address } : null,
     isConnected,
-    balance,
-    
-    // Actions
     connect: connectWallet,
-    disconnect: disconnectWallet,
-    signAndExecuteTransaction,
-    refreshBalance,
-    
-    // Sui client for direct queries
-    suiClient: null,
-    
-    // Available wallets
-    wallets,
+    disconnect,
+    balance: getBalance(),
   };
 }
-
-export default useDappKit;

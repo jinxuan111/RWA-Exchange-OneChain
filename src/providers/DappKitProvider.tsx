@@ -1,31 +1,40 @@
-'use client';
+"use client";
 
-import { SuiClientProvider, WalletProvider } from '@mysten/dapp-kit';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { useState } from 'react';
-import '@mysten/dapp-kit/dist/index.css';
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { WagmiProvider, createConfig, http } from "wagmi";
+import { injected } from "wagmi/connectors";
+import { ReactNode } from "react";
 
-// OneChain network configuration - EXACTLY like helper repo
-const ONECHAIN_RPC_URL = process.env.NEXT_PUBLIC_ONECHAIN_RPC_URL || 'https://rpc-testnet.onelabs.cc:443';
-const ONECHAIN_NETWORK = process.env.NEXT_PUBLIC_ONECHAIN_NETWORK || 'testnet';
+const robinhoodChain = {
+  id: 4663,
+  name: "Robinhood Chain",
+  nativeCurrency: { name: "Ethereum", symbol: "ETH", decimals: 18 },
+  rpcUrls: {
+    default: { http: ["https://rpc.mainnet.chain.robinhood.com"] },
+  },
+  blockExplorers: {
+    default: { name: "Blockscout", url: "https://robinhoodchain.blockscout.com" },
+  },
+} as const;
 
-export function DappKitProvider({ children }: { children: React.ReactNode }) {
-  const [queryClient] = useState(() => new QueryClient());
+const config = createConfig({
+  chains: [robinhoodChain],
+  transports: {
+    [robinhoodChain.id]: http(),
+  },
+  connectors: [
+    injected(),  // 👈 明确添加 injected 连接器
+  ],
+});
 
-  // Simple network config like helper repo
-  const networks = {
-    [ONECHAIN_NETWORK]: {
-      url: ONECHAIN_RPC_URL,
-    },
-  };
+const queryClient = new QueryClient();
 
+export function DappKitProvider({ children }: { children: ReactNode }) {
   return (
-    <QueryClientProvider client={queryClient}>
-      <SuiClientProvider networks={networks} defaultNetwork={ONECHAIN_NETWORK}>
-        <WalletProvider autoConnect>
-          {children}
-        </WalletProvider>
-      </SuiClientProvider>
-    </QueryClientProvider>
+    <WagmiProvider config={config}>
+      <QueryClientProvider client={queryClient}>
+        {children}
+      </QueryClientProvider>
+    </WagmiProvider>
   );
 }

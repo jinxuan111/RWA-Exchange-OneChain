@@ -43,7 +43,7 @@ import {
   FaCalendarAlt,
 } from "react-icons/fa";
 import { FiTrendingUp } from "react-icons/fi";
-import { useDappKit } from "@/hooks/useDappKit";
+// import { useDappKit } from "@/hooks/useDappKit";  // 👈 注释掉
 import { propertyContractService } from "@/services/propertyContract";
 import { logger } from "@/utils/secureLogger";
 import { mistToOct, calculateInvestmentAmount, formatMistAsOct } from "@/utils/conversion";
@@ -83,7 +83,8 @@ export default function MyInvestmentsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [walletBalance, setWalletBalance] = useState<number>(0);
-  const { account } = useDappKit();
+  // const { account } = useDappKit();  // 👈 注释掉
+  const account = { address: null };  // 👈 改成有 address 属性的对象
   const toast = useToast();
 
   const gradient = useColorModeValue(
@@ -243,7 +244,7 @@ export default function MyInvestmentsPage() {
   };
 
   return (
-    <WalletGuard>  {/* 👈 这里改了，去掉 requireWallet={true} */}
+    <WalletGuard>
       <Box
         bg={gradient}
         minH="100vh"
