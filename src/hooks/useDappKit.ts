@@ -1,100 +1,41 @@
-import { 
-  useCurrentAccount, 
-  useSignAndExecuteTransaction,
-  useDisconnectWallet,
-  useSuiClient,
-  useConnectWallet,
-  useWallets
-} from '@mysten/dapp-kit';
-import { useState, useEffect } from 'react';
+"use client";
 
-// Import Transaction from dapp-kit's bundled version to avoid type conflicts
-type Transaction = Parameters<ReturnType<typeof useSignAndExecuteTransaction>['mutate']>[0]['transaction'];
+import { useState } from 'react';
+
+type Transaction = any;
 
 export function useDappKit() {
-  const account = useCurrentAccount();
-  const { mutate: signAndExecute } = useSignAndExecuteTransaction();
-  const { mutate: disconnect } = useDisconnectWallet();
-  const { mutate: connect } = useConnectWallet();
-  const wallets = useWallets();
-  const suiClient = useSuiClient();
-  const [balance, setBalance] = useState<string>('0');
-
-  const isConnected = !!account;
-
-  // Fetch balance when account changes
-  useEffect(() => {
-    if (account?.address) {
-      refreshBalance();
-    } else {
-      setBalance('0');
-    }
-  }, [account?.address]);
-
-  const refreshBalance = async () => {
-    if (!account?.address) return;
-    
-    try {
-      const balanceData = await suiClient.getBalance({
-        owner: account.address,
-        coinType: '0x2::oct::OCT',
-      });
-      
-      // Convert from MIST to OCT (1 OCT = 1,000,000,000 MIST)
-      const octBalance = (Number(balanceData.totalBalance) / 1_000_000_000).toFixed(4);
-      setBalance(octBalance);
-    } catch (error) {
-      console.error('Error fetching balance:', error);
-      setBalance('0');
-    }
-  };
+  const [account, setAccount] = useState<any>(null);
+  const [isConnected, setIsConnected] = useState(false);
+  const [balance, setBalance] = useState('0');
+  const [wallets, setWallets] = useState<any[]>([]);
 
   const connectWallet = async () => {
-    // Find OneChain wallet or any Sui-compatible wallet
-    const wallet = wallets.find(w => 
-      w.name.toLowerCase().includes('sui') || 
-      w.name.toLowerCase().includes('onechain')
-    );
-    
-    if (wallet) {
-      connect({ wallet });
-    } else {
-      throw new Error('No compatible wallet found. Please install OneChain Wallet or Sui Wallet.');
-    }
+    // 模拟连接，不实际连接任何钱包
+    console.log('Wallet connection is disabled in this version');
+    return { success: false, message: 'Wallet connection disabled' };
   };
 
-  const signAndExecuteTransaction = async (
-    transaction: any,
-  ): Promise<any> => {
-    return new Promise((resolve, reject) => {
-      // Pass transaction exactly as helper repo does
-      signAndExecute(
-        {
-          transaction: transaction,
-        },
-        {
-          onSuccess: (result) => {
-            console.log('✅ Transaction successful:', result);
-            refreshBalance();
-            resolve(result);
-          },
-          onError: (error) => {
-            console.error('❌ Transaction failed:', error);
-            reject(error);
-          },
-        }
-      );
-    });
+  const signAndExecuteTransaction = async (transaction: any): Promise<any> => {
+    console.warn('Transaction signing is disabled in this version');
+    throw new Error('Transaction signing is disabled. Please enable wallet integration.');
   };
 
   const disconnectWallet = () => {
-    disconnect();
+    setAccount(null);
+    setIsConnected(false);
+    setBalance('0');
+  };
+
+  const refreshBalance = async () => {
+    // 模拟余额
+    setBalance('0');
   };
 
   return {
     // Account info
     account,
-    address: account?.address,
+    address: account?.address || null,
     isConnected,
     balance,
     
@@ -105,9 +46,11 @@ export function useDappKit() {
     refreshBalance,
     
     // Sui client for direct queries
-    suiClient,
+    suiClient: null,
     
     // Available wallets
     wallets,
   };
 }
+
+export default useDappKit;
