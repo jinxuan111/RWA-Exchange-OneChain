@@ -17,7 +17,6 @@ const robinhoodChain = {
   },
 } as const;
 
-// WalletConnect Project ID (免费注册: https://cloud.walletconnect.com)
 const projectId = "2f45af83cfbb3fdece4b6d66d2eba34a";
 
 const config = createConfig({
@@ -26,9 +25,7 @@ const config = createConfig({
     [robinhoodChain.id]: http(),
   },
   connectors: [
-    // 1. 桌面端：自动检测浏览器钱包插件
     injected(),
-    // 2. 移动端：WalletConnect 扫码/跳转
     walletConnect({ projectId }),
   ],
 });
