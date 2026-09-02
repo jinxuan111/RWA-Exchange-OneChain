@@ -1,79 +1,81 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useAccount, useDisconnect, useBalance } from "wagmi";
-
-// 直接使用 window.ethereum 连接
-async function connectWalletDirect() {
-  console.log("🔗 Direct connect called");
-  
-  // 检查是否有钱包
-  const provider = (window as any).ethereum;
-  if (!provider) {
-    alert("请安装钱包插件 (OKX Wallet, MetaMask, 或 Binance Wallet)");
-    console.error("❌ No ethereum provider found");
-    return null;
-  }
-
-  try {
-    // 请求账户
-    const accounts = await provider.request({ 
-      method: 'eth_requestAccounts' 
-    });
-    console.log("✅ Connected accounts:", accounts);
-    
-    if (accounts && accounts.length > 0) {
-      return { address: accounts[0] };
-    }
-    return null;
-  } catch (error: any) {
-    console.error("❌ Connection error:", error);
-    if (error.code === 4001) {
-      alert("用户拒绝了连接请求");
-    } else {
-      alert("连接失败: " + (error.message || "未知错误"));
-    }
-    return null;
-  }
-}
+import { useAccount, useConnect, useDisconnect, useBalance } from "wagmi";
+import { injected } from "wagmi/connectors";
 
 export function useDappKit() {
   const { address, isConnected: wagmiConnected } = useAccount();
+  const { connect, connectors } = useConnect();
   const { disconnect } = useDisconnect();
   const { data: balance } = useBalance({ address });
   
-  // 使用本地状态跟踪连接状态
-  const [localAddress, setLocalAddress] = useState<string | null>(null);
   const [isConnecting, setIsConnecting] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
 
-  // 优先使用 wagmi 的地址，如果没有则使用本地地址
-  const effectiveAddress = address || localAddress;
-  const isConnected = wagmiConnected || !!localAddress;
+  useEffect(() => {
+    const checkMobile = () => {
+      const userAgent = navigator.userAgent.toLowerCase();
+      const isMobileDevice = /android|iphone|ipad|ipod|blackberry|windows phone/.test(userAgent);
+      setIsMobile(isMobileDevice);
+    };
+    checkMobile();
+  }, []);
 
-  const connect = async () => {
-    console.log("🟢 Connect button clicked!");
-    if (isConnecting) return;
+  const connectWallet = async () => {
+    console.log("🔗 connectWallet called");
+    console.log("📱 isMobile:", isMobile);
+    console.log("📡 Available connectors:", connectors.map(c => c.id));
+    
+    if (isConnecting) {
+      console.log("⏳ Already connecting...");
+      return;
+    }
     
     setIsConnecting(true);
+
     try {
-      const result = await connectWalletDirect();
-      if (result?.address) {
-        setLocalAddress(result.address);
-        console.log("✅ Wallet connected successfully:", result.address);
-        // 刷新页面以更新 UI
-        setTimeout(() => window.location.reload(), 500);
+      // 检测是否有钱包
+      const hasProvider = typeof window !== 'undefined' && (window as any).ethereum;
+      console.log("👛 Ethereum provider available:", !!hasProvider);
+
+      // 1. 如果有钱包插件，使用 injected
+      if (hasProvider) {
+        console.log("🔌 Using injected connector");
+        const injectedConnector = connectors.find(c => c.id === 'injected' || c.type === 'injected');
+        if (injectedConnector) {
+          try {
+            // 先请求账户权限
+            const provider = (window as any).ethereum;
+            if (provider && provider.request) {
+              await provider.request({ method: 'eth_requestAccounts' });
+            }
+          } catch (providerError: any) {
+            if (providerError.code === 4001) {
+              console.log("👤 User rejected connection");
+              setIsConnecting(false);
+              return;
+            }
+          }
+          await connect({ connector: injectedConnector });
+          console.log("✅ Connected!");
+          return;
+        }
       }
-    } catch (error) {
+
+      // 2. 如果没有插件，提示安装
+      alert("请安装钱包插件 (OKX Wallet, MetaMask, 或 Binance Wallet)");
+      
+    } catch (error: any) {
       console.error("❌ Connect error:", error);
+      if (error?.message?.includes('rejected') || error?.code === 4001) {
+        console.log("用户拒绝了连接");
+      } else {
+        alert("连接失败: " + (error?.message || "未知错误"));
+      }
     } finally {
       setIsConnecting(false);
     }
-  };
-
-  const disconnectWallet = () => {
-    setLocalAddress(null);
-    disconnect();
-    console.log("🔌 Disconnected");
   };
 
   const getBalance = () => {
@@ -86,28 +88,18 @@ export function useDappKit() {
 
   const signAndExecuteTransaction = async (transaction: any) => {
     console.log("📝 signAndExecuteTransaction called:", transaction);
-    try {
-      const provider = (window as any).ethereum;
-      if (!provider) {
-        throw new Error("No wallet found");
-      }
-      // 模拟交易
-      return { 
-        success: true, 
-        transactionHash: "0x" + Math.random().toString(16).slice(2, 10),
-      };
-    } catch (error) {
-      console.error("❌ Transaction error:", error);
-      throw error;
-    }
+    return { 
+      success: true, 
+      transactionHash: "0x" + Math.random().toString(16).slice(2, 10),
+    };
   };
 
   return {
-    account: effectiveAddress ? { address: effectiveAddress } : null,
-    isConnected,
+    account: address ? { address } : null,
+    isConnected: wagmiConnected,
     isConnecting,
-    connect,
-    disconnect: disconnectWallet,
+    connect: connectWallet,
+    disconnect,
     balance: getBalance(),
     signAndExecuteTransaction,
   };

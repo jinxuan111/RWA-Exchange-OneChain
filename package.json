@@ -46,6 +46,8 @@
     "@wallet-standard/base": "^1.1.0",
     "@wallet-standard/features": "^1.1.0",
     "@wallet-standard/wallet": "^1.1.0",
+    "@walletconnect/ethereum-provider": "^2.24.0",
+    "@walletconnect/modal": "^2.7.0",
     "better-sqlite3": "^12.4.1",
     "blo": "^1.2.0",
     "encoding": "^0.1.13",

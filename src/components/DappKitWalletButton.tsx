@@ -8,6 +8,11 @@ export function DappKitWalletButton() {
 
   console.log("🔵 DappKitWalletButton render:", { isConnected, account: account?.address, isConnecting });
 
+  const handleConnect = () => {
+    console.log("🟢 Connect button clicked!");
+    void connect();
+  };
+
   if (isConnecting) {
     return (
       <Button
@@ -28,10 +33,7 @@ export function DappKitWalletButton() {
   if (!isConnected) {
     return (
       <Button
-        onClick={() => {
-          console.log("🟢 Connect button clicked!");
-          connect();
-        }}
+        onClick={() => { void handleConnect(); }}
         bgGradient="linear(to-r, purple.400, blue.500)"
         color="white"
         fontWeight="600"
@@ -72,7 +74,7 @@ export function DappKitWalletButton() {
         <MenuItem
           onClick={() => {
             if (account?.address) {
-              navigator.clipboard.writeText(account.address);
+              void navigator.clipboard.writeText(account.address);
             }
           }}
         >
@@ -86,7 +88,7 @@ export function DappKitWalletButton() {
         >
           🔍 View on Explorer
         </MenuItem>
-        <MenuItem onClick={disconnect} color="red.500">
+        <MenuItem onClick={() => { void disconnect(); }} color="red.500">
           🚪 Disconnect
         </MenuItem>
       </MenuList>
