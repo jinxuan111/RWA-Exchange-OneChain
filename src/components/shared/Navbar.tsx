@@ -75,8 +75,8 @@ export function Navbar() {
             fontFamily="Outfit"
             fontWeight="900"
             letterSpacing="tight"
-            size={{ base: "md", md: "lg" }}
-            display={{ base: "none", sm: "block" }}
+            size={{ base: "sm", sm: "md", md: "lg" }}
+            display={{ base: "block", sm: "block" }}
             transition="all 0.3s ease"
             _hover={{
               textDecoration: "none",
@@ -87,7 +87,7 @@ export function Navbar() {
               as="span"
               bgGradient="linear(to-r, purple.400, pink.500, blue.500)"
               bgClip="text"
-              fontSize={{ base: "xl", md: "2xl" }}
+              fontSize={{ base: "md", md: "2xl" }}
               fontWeight="900"
             >
               Leader
@@ -95,7 +95,7 @@ export function Navbar() {
             <Text
               as="span"
               color="gray.400"
-              fontSize={{ base: "sm", md: "md" }}
+              fontSize={{ base: "xs", md: "md" }}
               ml={1}
               fontWeight="500"
               _dark={{ color: "gray.500" }}
@@ -106,13 +106,13 @@ export function Navbar() {
         </HStack>
       </Flex>
 
-      {/* Center Section - Navigation (Desktop Only) */}
-      <Flex flex="0" display={{ lg: "flex", base: "none" }}>
+      {/* Center Section - Navigation (所有屏幕显示，自动换行) */}
+      <Flex flex="0" display="flex">
         <HStack
-          spacing={1}
+          spacing={{ base: 0.5, md: 1 }}
           bg="rgba(247, 250, 252, 0.8)"
           rounded="full"
-          p={1.5}
+          p={{ base: 0.5, md: 1.5 }}
           backdropFilter="blur(10px)"
           borderWidth="1px"
           borderColor="rgba(118, 75, 162, 0.12)"
@@ -122,17 +122,19 @@ export function Navbar() {
             borderColor: "rgba(118, 75, 162, 0.15)",
             boxShadow: "inset 0 1px 2px rgba(0, 0, 0, 0.2)"
           }}
+          flexWrap="wrap"
+          justify="center"
         >
-          <NavLink href="/" isActive={isActive("/")}>
+          <NavLink href="/" isActive={isActive("/")} isMobile={true}>
             Home
           </NavLink>
-          <NavLink href="/collection" isActive={isActive("/collection")}>
+          <NavLink href="/collection" isActive={isActive("/collection")} isMobile={true}>
             Marketplace
           </NavLink>
-          <NavLink href="/create-property" isActive={isActive("/create-property")}>
+          <NavLink href="/create-property" isActive={isActive("/create-property")} isMobile={true}>
             Create Property
           </NavLink>
-          <NavLink href="/dashboard" isActive={isActive("/dashboard")}>
+          <NavLink href="/dashboard" isActive={isActive("/dashboard")} isMobile={true}>
             Dashboard
           </NavLink>
         </HStack>
@@ -140,7 +142,7 @@ export function Navbar() {
 
       {/* Right Section - Action Buttons (所有屏幕都显示) */}
       <Flex flex={{ base: "0", lg: "1" }} justify="flex-end">
-        <HStack spacing={2}>
+        <HStack spacing={1}>
           <ToggleThemeButton />
           <DappKitWalletButton />
           {isConnected && account?.address && (
@@ -149,7 +151,7 @@ export function Navbar() {
         </HStack>
       </Flex>
 
-      {/* Mobile Menu */}
+      {/* Mobile Menu (不再需要，但保留以防万一) */}
       <SideMenu />
     </Flex>
   );
@@ -160,18 +162,20 @@ function NavLink({
   href,
   isActive,
   children,
-  color = "purple"
+  color = "purple",
+  isMobile = false
 }: {
   href: string;
   isActive: boolean;
   children: React.ReactNode;
   color?: string;
+  isMobile?: boolean;
 }) {
   return (
     <Link href={href} _hover={{ textDecoration: "none" }}>
       <Box
-        px={5}
-        py={2.5}
+        px={{ base: 2, sm: 3, md: 5 }}
+        py={{ base: 1, sm: 1.5, md: 2.5 }}
         rounded="full"
         bg={isActive ? `${color}.500` : "transparent"}
         color={isActive ? "white" : "gray.800"}
@@ -179,7 +183,7 @@ function NavLink({
           color: isActive ? "white" : "gray.200"
         }}
         fontWeight={isActive ? "700" : "600"}
-        fontSize="sm"
+        fontSize={{ base: "2xs", sm: "xs", md: "sm" }}
         fontFamily="Outfit"
         transition="all 0.3s cubic-bezier(0.4, 0, 0.2, 1)"
         cursor="pointer"
@@ -209,8 +213,8 @@ function ProfileButton({ address, onLogout }: { address: string; onLogout: () =>
     <Menu>
       <MenuButton
         as={Button}
-        height="44px"
-        px="14px"
+        height={{ base: "36px", md: "44px" }}
+        px={{ base: 2, md: "14px" }}
         rounded="full"
         bg="rgba(247, 250, 252, 0.8)"
         backdropFilter="blur(10px)"
@@ -235,12 +239,12 @@ function ProfileButton({ address, onLogout }: { address: string; onLogout: () =>
       >
         <Flex direction="row" gap="2" align="center">
           <Box>
-            <FiUser size={18} />
+            <FiUser size={14} />
           </Box>
           <Image
             src={blo(address as `0x${string}`)}
-            height="26px"
-            width="26px"
+            height={{ base: "20px", md: "26px" }}
+            width={{ base: "20px", md: "26px" }}
             rounded="full"
             boxShadow="sm"
           />
@@ -294,8 +298,8 @@ function ToggleThemeButton() {
   const { colorMode, toggleColorMode } = useColorMode();
   return (
     <Button
-      height="44px"
-      w="44px"
+      height={{ base: "36px", md: "44px" }}
+      width={{ base: "36px", md: "44px" }}
       onClick={toggleColorMode}
       rounded="full"
       bg="rgba(247, 250, 252, 0.8)"
