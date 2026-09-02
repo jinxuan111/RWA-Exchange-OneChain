@@ -107,7 +107,7 @@ export function Navbar() {
       </Flex>
 
       {/* Center Section - Navigation */}
-      {/* 电脑端：正常显示 */}
+      {/* 电脑端：正常横向显示 */}
       <Flex flex="0" display={{ base: "none", lg: "flex" }}>
         <HStack
           spacing={1}
@@ -139,8 +139,8 @@ export function Navbar() {
         </HStack>
       </Flex>
 
-      {/* 手机端：显示完整菜单（自动换行，文字缩小） */}
-      <Flex flex="0" display={{ base: "flex", lg: "none" }}>
+      {/* 手机端：横向排列，允许滚动 */}
+      <Flex flex="1" display={{ base: "flex", lg: "none" }} overflowX="auto" maxW="full" justify="center">
         <HStack
           spacing={0.5}
           bg="rgba(247, 250, 252, 0.8)"
@@ -155,8 +155,7 @@ export function Navbar() {
             borderColor: "rgba(118, 75, 162, 0.15)",
             boxShadow: "inset 0 1px 2px rgba(0, 0, 0, 0.2)"
           }}
-          flexWrap="wrap"
-          justify="center"
+          flexShrink={0}
         >
           <MobileNavLink href="/" isActive={isActive("/")}>
             Home
@@ -239,7 +238,7 @@ function NavLink({
   );
 }
 
-// MobileNavLink Component - 手机端用（文字更小）
+// MobileNavLink Component - 手机端用（更小，横向）
 function MobileNavLink({
   href,
   isActive,
@@ -255,14 +254,14 @@ function MobileNavLink({
     <Link href={href} _hover={{ textDecoration: "none" }}>
       <Box
         px={1.5}
-        py={1}
+        py={0.5}
         rounded="full"
         bg={isActive ? `${color}.500` : "transparent"}
         color={isActive ? "white" : "gray.800"}
         _dark={{
           color: isActive ? "white" : "gray.200"
         }}
-        fontWeight={isActive ? "700" : "600"}
+        fontWeight={isActive ? "700" : "500"}
         fontSize="2xs"
         fontFamily="Outfit"
         transition="all 0.3s cubic-bezier(0.4, 0, 0.2, 1)"

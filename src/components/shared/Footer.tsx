@@ -52,7 +52,7 @@ export function Footer() {
                                 fontFamily="Outfit"
                                 fontWeight="900"
                             >
-                                OneRWA
+                                Leaders
                             </Heading>
                         </HStack>
                         <Text fontSize="sm" color={textColor} lineHeight="1.8" maxW="300px">
