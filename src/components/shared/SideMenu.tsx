@@ -56,22 +56,10 @@ export function SideMenu() {
           </DrawerHeader>
           <DrawerBody>
             <VStack spacing={4} align="stretch">
-              {/* OneChainWalletButton 已移除 */}
-              <Box>
-                {/* <OneChainWalletButton /> */}  {/* 👈 注释掉 */}
-              </Box>
-
-              {/* 钱包连接状态显示已移除 */}
-
-              <Link href="/landing" _hover={{ textDecoration: "none" }} onClick={onClose}>
+              {/* 导航链接 - 包含 Create Property */}
+              <Link href="/" _hover={{ textDecoration: "none" }} onClick={onClose}>
                 <Button variant="ghost" w="full" justifyContent="flex-start">
-                  About
-                </Button>
-              </Link>
-              
-              <Link href="/dashboard" _hover={{ textDecoration: "none" }} onClick={onClose}>
-                <Button variant="ghost" w="full" justifyContent="flex-start">
-                  Dashboard
+                  Home
                 </Button>
               </Link>
               
@@ -81,14 +69,18 @@ export function SideMenu() {
                 </Button>
               </Link>
               
-              {/* Profile 链接已移除，因为需要钱包连接状态 */}
-              {/* 
-              <Link href="/profile" _hover={{ textDecoration: "none" }} onClick={onClose}>
+              {/* ✅ 添加 Create Property 链接 */}
+              <Link href="/create-property" _hover={{ textDecoration: "none" }} onClick={onClose}>
                 <Button variant="ghost" w="full" justifyContent="flex-start">
-                  Profile
+                  Create Property
                 </Button>
               </Link>
-              */}
+              
+              <Link href="/dashboard" _hover={{ textDecoration: "none" }} onClick={onClose}>
+                <Button variant="ghost" w="full" justifyContent="flex-start">
+                  Dashboard
+                </Button>
+              </Link>
             </VStack>
           </DrawerBody>
           <DrawerFooter>

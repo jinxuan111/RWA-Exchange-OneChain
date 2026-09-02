@@ -25,7 +25,6 @@ import { useDappKit } from "@/hooks/useDappKit";
 import { usePathname } from "next/navigation";
 
 export function Navbar() {
-  // 使用 any 类型避免类型冲突
   const dappKit = useDappKit() as any;
   const isConnected = dappKit.isConnected || false;
   const account = dappKit.account || null;
@@ -139,12 +138,8 @@ export function Navbar() {
         </HStack>
       </Flex>
 
-      {/* Right Section - Action Buttons (Desktop) */}
-      <Flex
-        flex={{ base: "0", lg: "1" }}
-        justify="flex-end"
-        display={{ lg: "flex", base: "none" }}
-      >
+      {/* Right Section - Action Buttons (所有屏幕都显示) */}
+      <Flex flex={{ base: "0", lg: "1" }} justify="flex-end">
         <HStack spacing={2}>
           <ToggleThemeButton />
           <DappKitWalletButton />

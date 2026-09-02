@@ -112,7 +112,7 @@ export default function LandingPage() {
               maxW="3xl"
               opacity={0.9}
             >
-              OneRWA enables fractional ownership of premium real estate, art, commodities, 
+              Leader enables fractional ownership of premium real estate, art, commodities, 
               and more through blockchain technology. Invest in the real world, powered by DeFi.
             </Text>
             

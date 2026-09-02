@@ -41,7 +41,7 @@ export function Footer() {
                         <HStack spacing={2}>
                             <Image
                                 src="/logo.png"
-                                alt="OneRWA Logo"
+                                alt="Leader Logo"
                                 height="36px"
                                 width="auto"
                             />
