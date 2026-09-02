@@ -1,29 +1,20 @@
 "use client";
 
-import { useAccount, useConnect, useDisconnect, useBalance } from "wagmi";
+import { useAccount, useConnect, useDisconnect, useBalance, useSignMessage } from "wagmi";
 import { injected } from "wagmi/connectors";
 
 export function useDappKit() {
   const { address, isConnected } = useAccount();
-  const { connect, connectors } = useConnect();
+  const { connect } = useConnect();
   const { disconnect } = useDisconnect();
   const { data: balance } = useBalance({ address });
+  const { signMessageAsync } = useSignMessage();
 
   const connectWallet = async () => {
     console.log("🔗 connectWallet called");
-    console.log("📡 Available connectors:", connectors);
-    
     try {
-      // 查找 injected 连接器
-      const injectedConnector = connectors.find(c => c.id === 'injected' || c.type === 'injected');
-      console.log("🔌 Using connector:", injectedConnector?.name || injectedConnector?.id);
-      
-      if (injectedConnector) {
-        const result = await connect({ connector: injectedConnector });
-        console.log("✅ Connect result:", result);
-      } else {
-        console.error("❌ No injected connector found!");
-      }
+      const result = await connect({ connector: injected() });
+      console.log("✅ Connect result:", result);
     } catch (error) {
       console.error("❌ Connect error:", error);
     }
@@ -37,11 +28,19 @@ export function useDappKit() {
     return "0";
   };
 
+  // 模拟 signAndExecuteTransaction（实际项目需要连接真实合约）
+  const signAndExecuteTransaction = async (transaction: any) => {
+    console.log("📝 signAndExecuteTransaction called:", transaction);
+    // 这里模拟交易成功
+    return { success: true, transactionHash: "0xmockhash" };
+  };
+
   return {
     account: address ? { address } : null,
     isConnected,
     connect: connectWallet,
     disconnect,
     balance: getBalance(),
+    signAndExecuteTransaction,  // 👈 添加这一行
   };
 }
