@@ -1,19 +1,36 @@
 "use client";
 
 import { useDappKit } from "@/hooks/useDappKit";
-import { Button, Menu, MenuButton, MenuList, MenuItem, HStack, Text, VStack } from "@chakra-ui/react";
+import { Button, Menu, MenuButton, MenuList, MenuItem, HStack, Text, VStack, Spinner } from "@chakra-ui/react";
 
 export function DappKitWalletButton() {
-  const { account, isConnected, connect, disconnect, balance } = useDappKit();
+  const { account, isConnected, isConnecting, connect, disconnect, balance } = useDappKit();
 
-  console.log("🔵 DappKitWalletButton render:", { isConnected, account: account?.address });
+  console.log("🔵 DappKitWalletButton render:", { isConnected, account: account?.address, isConnecting });
+
+  if (isConnecting) {
+    return (
+      <Button
+        bgGradient="linear(to-r, purple.400, blue.500)"
+        color="white"
+        fontWeight="600"
+        px={6}
+        py={3}
+        rounded="xl"
+        isDisabled
+      >
+        <Spinner size="sm" mr={2} />
+        Connecting...
+      </Button>
+    );
+  }
 
   if (!isConnected) {
     return (
       <Button
         onClick={() => {
           console.log("🟢 Connect button clicked!");
-          void connect();
+          connect();
         }}
         bgGradient="linear(to-r, purple.400, blue.500)"
         color="white"
@@ -22,6 +39,8 @@ export function DappKitWalletButton() {
         py={3}
         rounded="xl"
         _hover={{ transform: "translateY(-2px)", shadow: "lg" }}
+        _active={{ transform: "translateY(0)" }}
+        transition="all 0.2s"
       >
         Connect Wallet
       </Button>
@@ -53,7 +72,7 @@ export function DappKitWalletButton() {
         <MenuItem
           onClick={() => {
             if (account?.address) {
-              void navigator.clipboard.writeText(account.address);
+              navigator.clipboard.writeText(account.address);
             }
           }}
         >
@@ -67,7 +86,7 @@ export function DappKitWalletButton() {
         >
           🔍 View on Explorer
         </MenuItem>
-        <MenuItem onClick={() => { void disconnect(); }} color="red.500">
+        <MenuItem onClick={disconnect} color="red.500">
           🚪 Disconnect
         </MenuItem>
       </MenuList>

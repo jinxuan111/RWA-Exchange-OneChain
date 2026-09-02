@@ -22,9 +22,7 @@ const config = createConfig({
   transports: {
     [robinhoodChain.id]: http(),
   },
-  connectors: [
-    injected(),  // 👈 明确添加 injected 连接器
-  ],
+  connectors: [injected()],
 });
 
 const queryClient = new QueryClient();
