@@ -316,7 +316,7 @@ export default function Home() {
                 bgGradient="linear(to-r, purple.600, blue.500)"
                 bgClip="text"
               >
-                Why Choose OneRWA?
+                Why Choose Leader?
               </Heading>
               <Text fontSize="xl" color={textColor} maxW="3xl" lineHeight="1.8">
                 The most advanced platform for tokenizing and trading real-world assets
@@ -441,7 +441,7 @@ export default function Home() {
                 bgGradient="linear(to-r, purple.600, blue.500)"
                 bgClip="text"
               >
-                How OneRWA Works
+                How Leader Works
               </Heading>
               <Text fontSize="xl" color={textColor} maxW="3xl" lineHeight="1.8">
                 Start investing in real-world assets in three simple steps.

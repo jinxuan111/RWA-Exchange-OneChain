@@ -235,7 +235,7 @@ export function Footer() {
                     gap={4}
                 >
                     <Text fontSize="sm" color={textColor} textAlign={{ base: "center", md: "left" }}>
-                        © {new Date().getFullYear()} OneRWA. All rights reserved. Built on OneChain.
+                        © {new Date().getFullYear()} Leader. All rights reserved. Built on OneChain.
                     </Text>
                     <HStack spacing={6} flexWrap="wrap" justify={{ base: "center", md: "flex-end" }}>
                         {[
